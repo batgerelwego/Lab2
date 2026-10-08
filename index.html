@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I.ETM201 – Лаборатори 2. Нэг фазын бүтэн үеийн гүүрэн шулуутгагч</title>
+<style>
+:root{
+  --ink:#1d2440;--ink2:#4a5275;--ink3:#7a82a3;
+  --bg:#eef0f8;--panel:#fff;--line:#d7dbee;--dot:#c3c9ea;
+  --b1:#667eea;--b2:#764ba2;
+  --vin:#2f6fed;--vout:#d6336c;--on:#12a150;--amber:#f2a900;--bad:#c0392b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:"Segoe UI","Helvetica Neue",Arial,"Noto Sans",sans-serif;color:var(--ink);background:var(--bg);line-height:1.65;font-size:16px}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+
+/* ---- толгой ---- */
+.hero{background:linear-gradient(135deg,var(--b1),var(--b2));color:#fff;padding:26px 0 22px}
+.hero .course{font-size:.9rem;opacity:.92}
+.hero h1{font-size:clamp(1.4rem,3.6vw,2.1rem);line-height:1.22;margin:.35rem 0 .45rem;font-weight:700;letter-spacing:-.01em}
+.hero .sub{opacity:.93}
+
+/* ---- таб ---- */
+.tabbar{position:sticky;top:0;z-index:30;background:#fff;border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:thin}
+.tab{flex:0 0 auto;padding:14px 18px;border:0;background:none;font:inherit;color:var(--ink2);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.tab:hover{background:#f4f5ff}
+.tab[aria-selected=true]{color:var(--b2);border-bottom-color:var(--b2);font-weight:600}
+main{padding:22px 0 30px;scroll-margin-top:56px}
+.tabpanel{display:none}
+.tabpanel.active{display:block}
+
+/* ---- хэсэг ---- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:18px}
+h2{font-size:1.3rem;line-height:1.3;margin-bottom:12px;padding-left:12px;border-left:4px solid var(--b1)}
+h3{font-size:1.05rem;margin:18px 0 6px}
+p{margin:0 0 .75em}
+ul.plain{margin:0 0 .75em 20px}
+ul.plain li{margin-bottom:4px}
+.muted{color:var(--ink3);font-size:.92rem}
+sub,sup{font-size:.72em;line-height:0}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cols2>*,.asm>*,.instr>*,.states>*{min-width:0}
+@media(max-width:760px){.cols2{grid-template-columns:1fr}}
+
+.note,.warn,.okbox{border-left:4px solid;padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;font-size:.97rem}
+.note{background:#eef2ff;border-color:var(--b1)}
+.warn{background:#fff6e0;border-color:var(--amber)}
+.warn ul{margin:6px 0 0 20px}
+.warn li{margin-bottom:4px}
+.okbox{background:#e7f7ee;border-color:var(--on)}
+
+.eq{background:#f3f5ff;border:1px solid var(--line);border-radius:8px;padding:9px 14px;margin:8px 0;text-align:center;font-size:1.08rem;font-family:"Cambria Math","Times New Roman",serif;overflow-x:auto}
+
+/* ---- товч, талбар ---- */
+.btn{font:inherit;border:1px solid var(--b1);background:#fff;color:var(--b2);padding:9px 16px;border-radius:8px;cursor:pointer;min-height:42px}
+.btn:hover{background:#f1f2ff}
+.btn.primary{background:var(--b2);border-color:var(--b2);color:#fff}
+.btn.primary:hover{background:#5f3b8a}
+.btn.go{background:var(--on);border-color:var(--on);color:#fff}
+.btn.go:hover{background:#0e8a46}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.off{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.ctrl{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;margin:10px 0 14px}
+.field{display:block;font-size:.9rem;color:var(--ink2)}
+.field>select,.field>input,.field>.seg{display:block;margin-top:3px}
+.field>.seg{display:flex;width:max-content}
+select,input[type=number],input[type=text]{font:inherit;padding:7px 9px;border:1px solid #bfc5e4;border-radius:7px;background:#fff;color:var(--ink);min-height:40px}
+.check{display:flex;align-items:center;gap:8px;min-height:40px;font-size:.95rem;color:var(--ink)}
+.check input{width:20px;height:20px}
+input[type=range]{width:150px}
+.seg{display:inline-flex;border:1px solid var(--b1);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;border:0;background:#fff;color:var(--b2);padding:8px 14px;cursor:pointer;min-height:40px}
+.seg button+button{border-left:1px solid var(--b1)}
+.seg button[aria-pressed=true]{background:var(--b2);color:#fff}
+
+/* ---- график цаас (схем, багаж) ---- */
+.bench{background-color:#fbfcff;background-image:radial-gradient(circle,var(--dot) 1.1px,transparent 1.6px);background-size:20px 20px;border:1px solid var(--line);border-radius:10px}
+.benchscroll{overflow-x:auto}
+.bench svg{display:block;width:100%;min-width:660px;height:auto;touch-action:pan-x pan-y}
+.lbl{font-size:14px;fill:var(--ink2)}
+.lbl.b{font-weight:700;fill:var(--ink)}
+.slotlbl{font-size:15px;fill:var(--ink2);font-weight:600}
+.slotbox{fill:#fff;stroke:#8f99d6;stroke-width:1.6;stroke-dasharray:5 4}
+.slot{cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.static .slot{pointer-events:none}
+.slot .hit{fill:transparent}
+.slot.filled .slotbox{stroke:none;stroke-dasharray:none}
+.dragging .slot:not(.filled) .slotbox{stroke:var(--b1)}
+.slot.hover .slotbox{fill:#eef0ff;stroke:var(--b1);stroke-width:2.4;stroke-dasharray:none}
+.slot.sel .slotbox{fill:#fff7e0;stroke:var(--amber);stroke-width:2.6;stroke-dasharray:none}
+.slot:focus-visible .slotbox{stroke:var(--amber);stroke-width:3;stroke-dasharray:none}
+.slot .tri{transition:fill .12s}
+.slot.on .tri{fill:#8be0ad}
+.slot.on .sym path{stroke:#0b7a3b}
+.slot.bad .tri{fill:#ffd5d0}
+.slot.bad .sym path{stroke:var(--bad)}
+.dot{fill:var(--amber);stroke:#fff;stroke-width:1}
+.hintg,.failg{display:none}
+.hint-on .hintg{display:block}
+.failing .failg{display:block}
+.hintg .lbl{fill:#9a6a00;font-weight:600}
+
+/* ---- схем угсрах ---- */
+.stagebar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+.stagebtn{font:inherit;border:1px solid var(--b1);background:#fff;color:var(--b2);padding:9px 14px;border-radius:8px;cursor:pointer;min-height:42px}
+.stagebtn[aria-pressed=true]{background:var(--b2);border-color:var(--b2);color:#fff}
+.stagebtn .tick{display:none;margin-left:6px}
+.stagebtn.passed .tick{display:inline}
+.asm{display:grid;grid-template-columns:minmax(0,1fr) 236px;gap:16px;align-items:start}
+@media(max-width:900px){.asm{grid-template-columns:1fr}}
+.tray{background:#f7f8ff;border:1px solid var(--line);border-radius:10px;padding:12px}
+.tray h3{margin:0 0 8px;font-size:1rem}
+.trayl{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.part{-webkit-tap-highlight-color:transparent;background:#fff;border:1px solid #c5cbe8;border-radius:8px;padding:6px 4px 5px;text-align:center;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;font-size:.82rem;line-height:1.25}
+.part svg{display:block;margin:0 auto;width:84px;height:42px}
+.part:hover{border-color:var(--b1)}
+.part.sel{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber)}
+.part.dis{opacity:.4;pointer-events:none}
+.ghost{position:fixed;z-index:1000;pointer-events:none;opacity:.94;transform:translate(-50%,-60%);background:#fff;border:1px solid var(--b1);border-radius:8px;padding:4px}
+.msg{border-radius:8px;padding:10px 14px;margin:12px 0;border:1px solid var(--line);background:#fff;min-height:50px}
+.msg.ok{background:#e7f7ee;border-color:#9bd9b5}
+.msg.bad{background:#fdecea;border-color:#f1b1aa}
+.msg.warn{background:#fff6e0;border-color:#f0d08a}
+.actbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#fff7e0;border:1px solid #f0d08a;border-radius:8px;padding:8px 12px;margin:10px 0}
+.actbar[hidden],.pwr[hidden],.confirm[hidden]{display:none}
+.confirm{background:#fff6e0;border:1px solid #f0d08a;border-radius:8px;padding:10px 14px;margin:10px 0}
+.pwr{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px;background:#fff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0}
+.stat{background:#f3f5ff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.88rem;color:var(--ink2)}
+.stat b{display:block;font-size:1.15rem;color:var(--ink);font-family:ui-monospace,Consolas,"Courier New",monospace}
+canvas.wave{display:block;width:100%;background:#fff;border:1px solid var(--line);border-radius:8px}
+
+/* ---- ажиллагааны карт ---- */
+.state{background:#fff;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:0 8px 8px 0;padding:10px 14px;margin:0}
+.state.active{border-left-color:var(--on);background:#f0faf4}
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:14px 0}
+.now{font-family:ui-monospace,Consolas,"Courier New",monospace;font-size:.92rem;color:var(--ink2);margin:8px 0;min-height:1.6em}
+.nowstate{font-weight:600;min-height:1.7em}
+
+/* ---- багаж ---- */
+.instr{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:900px){.instr{grid-template-columns:1fr}}
+.meter{background:#e9ecf6;border:2px solid #aeb5d8;border-radius:16px;padding:14px}
+.lcd{background:#b9cbaa;border:3px inset #8b9d7d;border-radius:6px;padding:10px 12px;text-align:right;font-family:ui-monospace,Consolas,"Courier New",monospace;color:#1c2616;position:relative;min-height:84px}
+.lcd .v{font-size:2.7rem;font-weight:700;letter-spacing:.04em;line-height:1.15}
+.lcd .u{font-size:1.1rem;margin-left:6px}
+.lcd .tag{position:absolute;left:10px;top:6px;font-size:.8rem;font-weight:700}
+.meter .field{margin-top:10px}
+.scopebox{background:#2b3144;border-radius:14px;padding:12px;border:2px solid #1b2030}
+.scopebox canvas{display:block;width:100%;border-radius:6px;background:#06101a}
+.scopectl{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:10px;color:#dde1f5;font-size:.88rem}
+.scopectl .field{color:#dde1f5}
+.scopectl select{min-height:34px;padding:4px 8px}
+.scopectl .check{color:#dde1f5;min-height:34px}
+.scopeinfo{color:#9fd6e6;font-family:ui-monospace,Consolas,"Courier New",monospace;font-size:.85rem;margin-top:8px}
+
+/* ---- хүснэгт ---- */
+.tblwrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:.95rem}
+.tbl th,.tbl td{border:1px solid var(--line);padding:7px 9px;text-align:center}
+.tbl th{background:#eef0ff;font-weight:600}
+.tbl input{width:84px;text-align:center}
+.tbl input.ok{background:#e1f5e9;border-color:var(--on)}
+.tbl input.bad{background:#fde7e4;border-color:var(--bad)}
+.tbl input.shown{background:#fff6e0}
+.tbl.sm td,.tbl.sm th{text-align:left}
+
+/* ---- жагсаалт ---- */
+.chk{list-style:none}
+.chk li{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer;background:#fff}
+.chk li:hover{background:#f6f7ff}
+.chk .box{flex:0 0 22px;width:22px;height:22px;border:2px solid #9aa3d6;border-radius:5px;margin-top:2px;display:grid;place-items:center;font-size:.85rem;color:transparent}
+.chk li.done{background:#f0faf4;border-color:#bfe5cf}
+.chk li.done .box{background:var(--on);border-color:var(--on);color:#fff}
+.chk .why{display:block;color:var(--ink3);font-size:.9rem}
+.chk .n{color:var(--b2);font-weight:700}
+.prog{font-size:.92rem;color:var(--ink2);margin:6px 0 10px}
+
+/* ---- шалгалт ---- */
+.q{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:#fff}
+.q .qt{font-weight:600;margin-bottom:8px}
+.q label{display:flex;gap:10px;align-items:flex-start;padding:7px 10px;border-radius:7px;cursor:pointer;border:1px solid transparent}
+.q label:hover{background:#f4f5ff}
+.q label.right{background:#e1f5e9;border-color:#9bd9b5}
+.q label.wrong{background:#fde7e4;border-color:#f1b1aa}
+.q .ex{margin-top:6px;font-size:.93rem;color:var(--ink2);display:none}
+.q.done .ex{display:block}
+.score{font-size:1.4rem;font-weight:700;margin:6px 0}
+
+.flow svg{width:100%;height:auto;display:block}
+.narrownote{display:none}
+@media(max-width:720px){
+  .bench svg{min-width:0}
+  .scrollnote{display:none}
+  .narrownote{display:block}
+}
+@media(max-width:900px){
+  .tray{position:sticky;bottom:0;z-index:15;border-radius:10px 10px 0 0;box-shadow:0 -4px 14px rgba(29,36,64,.14);padding:8px}
+  .tray h3,.tray>p{display:none}
+  .trayl{display:flex;overflow-x:auto;gap:8px;padding-bottom:2px}
+  .part{flex:0 0 98px;touch-action:pan-x}
+}
+.foot{text-align:center;color:var(--ink3);font-size:.88rem;padding:6px 16px 32px}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="course">I.ETM201 – Электроник, микроэлектроник I &nbsp;|&nbsp; Багш: Т.Батгэрэл M.EC21</p>
+    <h1>Лаборатори 2. Нэг фазын бүтэн үеийн гүүрэн шулуутгагч</h1>
+    <p class="sub">Ажиллах зарчим, схем угсрах дасгал, виртуал хэмжилт, хяналтын асуулт</p>
+  </div>
+</header>
+
+<div class="tabbar">
+  <div class="wrap">
+    <div class="tabs" role="tablist" aria-label="Хэсгүүд">
+      <button class="tab" role="tab" id="tb0" aria-selected="true" aria-controls="tab0">Бэлтгэл ба заавар</button>
+      <button class="tab" role="tab" id="tb1" aria-selected="false" aria-controls="tab1">Ажиллах зарчим</button>
+      <button class="tab" role="tab" id="tb2" aria-selected="false" aria-controls="tab2">Схем угсрах</button>
+      <button class="tab" role="tab" id="tb3" aria-selected="false" aria-controls="tab3">Хэмжилт</button>
+      <button class="tab" role="tab" id="tb4" aria-selected="false" aria-controls="tab4">Хяналтын асуулт</button>
+    </div>
+  </div>
+</div>
+
+<main id="main" class="wrap">
+
+<!-- ================= 1. БЭЛТГЭЛ ================= -->
+<section id="tab0" class="tabpanel active" role="tabpanel" aria-labelledby="tb0">
+  <div class="panel">
+    <h2>Ажлын зорилго</h2>
+    <ul class="plain">
+      <li>Нэг фазын бүтэн үеийн шулуутгагчийн хэлхээг турших.</li>
+      <li>Шулуутгагчийн гаралтад шүүр тавьж турших.</li>
+    </ul>
+    <div class="note"><b>Энэ хуудсыг хэрхэн ашиглах вэ.</b> Эхлээд «Ажиллах зарчим» хэсгээр хэлхээ яагаад ингэж ажилладгийг үз. Дараа нь «Схем угсрах» хэсэгт элементүүдийг зөөж Зураг 2.1, Зураг 2.2-ын схемийг бүрдүүл. «Хэмжилт» хэсэгт Хүснэгт 2.1-ийг виртуал багажаар бөглөж, «Хяналтын асуулт»-аар мэдлэгээ шалга. Энэ нь бодит лабын өмнөх бэлтгэл бөгөөд бодит холболтыг заавал багшид шалгуулна.</div>
+    <div class="btnrow"><button class="btn primary" data-go="1">Ажиллах зарчим руу очих</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>Элемент, тоног төхөөрөмжийн жагсаалт</h2>
+    <p class="prog" id="eqProg"></p>
+    <ul class="chk" id="eqList">
+      <li><span class="box">✓</span><span><b>Мультиметр</b> <span class="n">1</span></span></li>
+      <li><span class="box">✓</span><span><b>Осциллограф</b> <span class="n">1</span></span></li>
+      <li><span class="box">✓</span><span><b>Холболтын хавтан</b> <span class="n">1</span></span></li>
+      <li><span class="box">✓</span><span><b>Трансформатор</b> <span class="n">1</span></span></li>
+      <li><span class="box">✓</span><span><b>1N4007 диод</b> <span class="n">4</span></span></li>
+      <li><span class="box">✓</span><span><b>Ачааллын эсэргүүцэл 1 кΩ</b> <span class="n">1</span></span></li>
+      <li><span class="box">✓</span><span><b>Ачааллын эсэргүүцэл 4.7 кΩ</b> <span class="n">1</span></span></li>
+      <li><span class="box">✓</span><span><b>Ачааллын эсэргүүцэл 10 кΩ</b> <span class="n">1</span></span></li>
+      <li><span class="box">✓</span><span><b>2.2 µF конденсатор</b> <span class="n">1</span></span></li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h2>Аюулгүй ажиллагааны дүрэм</h2>
+    <div class="warn">
+      <ul>
+        <li>Схемийг угсрах, өөрчлөх бүрдээ тэжээлийг заавал салгасан байна.</li>
+        <li>Угсарсан схемийг багшид шалгуулж, зөвшөөрөл авсны дараа л трансформаторын анхдагч ороомгийг 220 В-д залгана.</li>
+        <li>220 В-ын хэсэг болон хүчдэлтэй ил хэсэгт хүрэхгүй. 0.05 А-аас дээш гүйдэл хүний амь насанд аюултай.</li>
+        <li>Диодыг урвуу чиглэлээр холбовол хоёр диод цуваагаар эх үүсвэрийг богиносгож гэмтнэ. Холбохоосоо өмнө диод бүрийн катодын зураасыг шалга.</li>
+        <li>Электролит конденсаторыг туйлтай нь тааруулж холбоно: (+) хөл нь гаралтын (+) талд, (−) хөл нь 0 В талд.</li>
+        <li>Осциллографын хоёр сувгийн газар (хар хавчаар) дотроо холбоотой. Газрын хавчаарыг зөвхөн 0 В цэгт холбоно.</li>
+        <li>Багаж, элемент гэмтсэн эсвэл гүйдэлд нэрвэгдвэл тэжээлийг даруй салгаж, багшид мэдэгдэнэ.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Хэмжилтийн дараалал</h2>
+    <p class="prog" id="stProg"></p>
+    <h3>А. Шүүргүй бүтэн үеийн шулуутгагч (Зураг 2.1)</h3>
+    <ul class="chk" id="stepListA">
+      <li><span class="box">✓</span><span><b>1.</b> Шулуутгагчийн схемийг угсарна. Ачааллын эсэргүүцлийг (1 кΩ, 4.7 кΩ, 10 кΩ) хүснэгтийн дагуу сонгоно.<span class="why">Ачаа өөрчлөгдөхөд гаралтын гүйдэл, хүчдэл, лугшилт хэрхэн өөрчлөгдөхийг харна.</span></span></li>
+      <li><span class="box">✓</span><span><b>2.</b> Трансформаторын хоёрдугаар ороомгийг хэлхээнд холбож, анхдагч ороомгийг 220 В-д холбоход бэлдэнэ.<span class="why">Хоёрдугаар ороомог нь бага хүчдэлтэй тал. Анхдагч талыг одоохондоо залгахгүй.</span></span></li>
+      <li><span class="box">✓</span><span><b>3.</b> Схемийн холболтоо багшид шалгуулна.<span class="why">Зөвшөөрөлгүйгээр тэжээл залгахыг хориглоно.</span></span></li>
+      <li><span class="box">✓</span><span><b>4.</b> Трансформаторыг 220 В-д залгаж, хоёрдугаар ороомог дээрх V<sub>IN</sub> хүчдэлийг мультиметрээр (AC) хэмжиж Хүснэгт 2.1-д бичнэ.<span class="why">V<sub>IN</sub> нь шулуутгагчийн оролтын үйлчлэх утга. Тооцоонд U<sub>max</sub> = V<sub>IN</sub> · 1.414 гэж ашиглана.</span></span></li>
+      <li><span class="box">✓</span><span><b>5.</b> Ачааллын эсэргүүцэл бүрд гаралтын хувьсах (V<sub>AC</sub>) ба тогтмол (V<sub>DC</sub>) хүчдэлийг хэмжинэ.<span class="why">Мультиметрийн AC болон DC тавилыг сольж хэмжинэ.</span></span></li>
+    </ul>
+    <h3>Б. Шүүртэй бүтэн үеийн шулуутгагч (Зураг 2.2)</h3>
+    <ul class="chk" id="stepListB">
+      <li><span class="box">✓</span><span><b>6.</b> Ачаатай зэрэгцээ 2.2 µF конденсатор залгаж Зураг 2.2-ын схемийг угсарна. Ачааллын эсэргүүцлийг хүснэгтийн дагуу сонгоно.<span class="why">Конденсаторын туйлыг шалга.</span></span></li>
+      <li><span class="box">✓</span><span><b>7.</b> Трансформаторын хоёрдугаар ороомгийг холбож, анхдагч ороомгийг 220 В-д холбоход бэлдэнэ.</span></li>
+      <li><span class="box">✓</span><span><b>8.</b> Схемийн холболтоо багшид шалгуулна.</span></li>
+      <li><span class="box">✓</span><span><b>9.</b> Ачааллын эсэргүүцэл бүрд гаралтын V<sub>AC</sub> ба V<sub>DC</sub> хүчдэлийг хэмжинэ.<span class="why">Шүүртэй үед V<sub>DC</sub> нэмэгдэж, V<sub>AC</sub> (лугшилт) буурахыг шүүргүй үетэй харьцуул.</span></span></li>
+      <li><span class="box">✓</span><span><b>10.</b> Ачааллын эсэргүүцэл 4.7 кΩ үед осциллографаар шүүртэй болон шүүргүй гаралтын сигналын хэлбэрийг масштабын дагуу График 2.1-д зурна.<span class="why">Осциллографын газрын хавчаарыг 0 В цэгт, зондыг гаралтын (+) цэгт холбоно.</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= 2. АЖИЛЛАХ ЗАРЧИМ ================= -->
+<section id="tab1" class="tabpanel" role="tabpanel" aria-labelledby="tb1">
+  <div class="panel">
+    <h2>Хэлхээний ерөнхий бүтэц</h2>
+    <p>Сүлжээний 220 В, 50 Гц-ийн хувьсах хүчдэлийг тогтмол хүчдэл болгох хэлхээ дараах дарааллаар ажиллана. Трансформатор хүчдэлийг бууруулна, гүүрэн шулуутгагч хоёр чиглэлийн давлагыг нэг чиглэлд эргүүлнэ, шүүр конденсатор лугшилтыг тэгшилнэ, ачаа тогтмолд ойролцоо хүчдэл авна.</p>
+    <div class="flow">
+      <svg viewBox="0 0 900 160" role="img" aria-label="Блок схем: сүлжээ, трансформатор, гүүрэн шулуутгагч, шүүр, ачаа">
+        <g font-family="Segoe UI, Arial, sans-serif" text-anchor="middle">
+          <g fill="#fff" stroke="#b7bde0" stroke-width="1.5">
+            <rect x="10" y="8" width="150" height="132" rx="10"/><rect x="190" y="8" width="150" height="132" rx="10"/>
+            <rect x="370" y="8" width="150" height="132" rx="10"/><rect x="550" y="8" width="150" height="132" rx="10"/>
+            <rect x="730" y="8" width="150" height="132" rx="10"/>
+          </g>
+          <g fill="#1d2440" font-size="14" font-weight="700">
+            <text x="85" y="30">Сүлжээ</text><text x="265" y="30">Трансформатор</text><text x="445" y="30">Гүүрэн шулуутгагч</text>
+            <text x="625" y="30">Шүүр (C)</text><text x="805" y="30">Ачаа (R)</text>
+          </g>
+          <g fill="#4a5275" font-size="12.5">
+            <text x="85" y="128">220 В, 50 Гц</text><text x="265" y="128">бага хүчдэл V<tspan font-size="10" dy="3">IN</tspan></text><text x="445" y="128">лугшилттай, 100 Гц</text>
+            <text x="625" y="128">лугшилт багассан</text><text x="805" y="128">тогтмолд ойролцоо</text>
+          </g>
+          <g fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <g transform="translate(20 76)" stroke="#2f6fed"><path d="M0 0H130" stroke="#d7dbee" stroke-width="1.2"/><path d="M0 0q13 -52 26 0t26 0t26 0t26 0t26 0"/></g>
+            <g transform="translate(200 76)" stroke="#2f6fed"><path d="M0 0H130" stroke="#d7dbee" stroke-width="1.2"/><path d="M0 0q13 -20 26 0t26 0t26 0t26 0t26 0"/></g>
+            <g transform="translate(380 54)" stroke="#d6336c"><path d="M0 44H130" stroke="#d7dbee" stroke-width="1.2"/><path d="M0 44q13 -48 26 0q13 -48 26 0q13 -48 26 0q13 -48 26 0q13 -48 26 0"/></g>
+            <g transform="translate(560 54)" stroke="#d6336c"><path d="M0 44H130" stroke="#d7dbee" stroke-width="1.2"/><path d="M0 20L13 4L26 16L39 4L52 16L65 4L78 16L91 4L104 16L117 4L130 16"/></g>
+            <g transform="translate(740 54)" stroke="#d6336c"><path d="M0 44H130" stroke="#d7dbee" stroke-width="1.2"/><path d="M0 8H130"/></g>
+            <g stroke="#7a82a3" stroke-width="2"><path d="M164 74H186M180 68l6 6l-6 6"/><path d="M344 74H366M360 68l6 6l-6 6"/><path d="M524 74H546M540 68l6 6l-6 6"/><path d="M704 74H726M720 68l6 6l-6 6"/></g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Хоёр үндсэн элемент: трансформатор ба диод</h2>
+    <div class="cols2">
+      <div>
+        <h3>Трансформатор</h3>
+        <p>Анхдагч ороомгийг 220 В, 50 Гц-ийн сүлжээнд залгахад хоёрдугаар ороомог дээр ороомгийн тооны харьцаагаар буурсан хувьсах хүчдэл V<sub>IN</sub> үүснэ: U<sub>2</sub> = U<sub>1</sub> · N<sub>2</sub> / N<sub>1</sub>.</p>
+        <p>Хоёрдугаар ороомог нь сүлжээнээс цахилгаанаар тусгаарлагдсан. V<sub>IN</sub>-ийн үйлчлэх утгыг мультиметрээр хэмжиж Хүснэгт 2.1-д бичнэ (алхам 4). Оргил утга нь U<sub>max</sub> = V<sub>IN</sub> · 1.414.</p>
+      </div>
+      <div>
+        <h3>Диод 1N4007</h3>
+        <p>Цахиурын диод гүйдлийг нэг чиглэлд дамжуулна. Анодод (+), катодод (−) өгвөл шууд холболт: хүчдэл ойролцоогоор 0.7 В-оос давмагц диод нээгдэж, түүн дээр ≈ 0.7 В унана.</p>
+        <p>Урвуу холболтод диод хаалттай, гүйдэл бараг гүйхгүй. 1N4007: шууд гүйдэл ≤ 1 А, урвуу хүчдэл ≤ 1000 В. Корпус дээрх зураас нь катодыг заана.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Гүүрэн шулуутгагч хэрхэн ажилладаг вэ?</h2>
+    <p>Дөрвөн диод ромб хэлбэрээр холбогдсон. Ромбын дээд (a) ба доод (b) өнцөгт трансформаторын хоёрдугаар ороомог, баруун (+) ба зүүн (−) өнцөгт ачаа холбогдоно. Доорх загварт шар цэгүүд гүйдлийн чиглэлийг, ногоон диод нээлттэй байгааг заана. Хугацааг удаан болгосон тул давлага бүрийг тусад нь харж болно.</p>
+
+    <div class="ctrl">
+      <label class="field">V<sub>IN</sub> (үйлчлэх утга)
+        <select id="dVrms"><option value="6">6 В</option><option value="9">9 В</option><option value="12" selected>12 В</option><option value="15">15 В</option><option value="18">18 В</option></select>
+      </label>
+      <label class="field">Ачааллын эсэргүүцэл R
+        <select id="dR"><option value="1000">1 кΩ</option><option value="4700" selected>4.7 кΩ</option><option value="10000">10 кΩ</option></select>
+      </label>
+      <label class="check"><input type="checkbox" id="dFilter"><span>Шүүр конденсатор залгах</span></label>
+      <label class="field">Багтаамж C
+        <select id="dC"><option value="2.2e-6" selected>2.2 µF</option><option value="10e-6">10 µF</option><option value="47e-6">47 µF</option><option value="100e-6">100 µF</option></select>
+      </label>
+      <label class="field">Хурд
+        <input type="range" id="dSpeed" min="0.25" max="3" step="0.25" value="1">
+      </label>
+      <button class="btn" id="dPlay" type="button">Түр зогсоох</button>
+    </div>
+
+    <div class="bench benchscroll static"><svg id="demoSvg" viewBox="0 0 900 470" role="img" aria-label="Гүүрэн шулуутгагчийн хөдөлгөөнт схем"></svg></div>
+    <p class="muted scrollnote">Жижиг дэлгэц дээр схемийг хажуу тийш гүйлгэж харна.</p>
+    <p class="muted narrownote">Жижиг дэлгэц дээр схемийн зүүн талын трансформаторыг нуусан. Бүтнээр нь өргөн дэлгэц дээр харна.</p>
+    <p class="now" id="dNow"></p>
+    <p class="nowstate" id="dState"></p>
+    <canvas class="wave" id="dWave" data-ratio="0.36" aria-label="Оролт ба гаралтын хүчдэлийн хэлбэр"></canvas>
+    <p class="muted"><span style="color:#2f6fed;font-weight:700">Цэнхэр</span> — V<sub>IN</sub>, <span style="color:#d6336c;font-weight:700">ягаан</span> — V<sub>OUT</sub>, саарал тасархай — шүүргүй үеийн шулуутгагдсан хүчдэл, шар шугам — одоогийн агшин.</p>
+
+    <div class="states">
+      <div class="state" id="cardPos"><b>Эерэг давлага</b> (a цэг b-ээс өндөр)<br>Гүйдэл: эх үүсвэр → D1 → ачаа R (дээрээс доош) → D3 → эх үүсвэр. D2 ба D4 урвуу хүчдэлд байгаа тул хаалттай.</div>
+      <div class="state" id="cardNeg"><b>Сөрөг давлага</b> (b цэг a-аас өндөр)<br>Гүйдэл: эх үүсвэр → D4 → ачаа R (дээрээс доош) → D2 → эх үүсвэр. D1 ба D3 хаалттай.</div>
+      <div class="state" id="cardFilt"><b>Шүүртэй үед, оргилоос хойш</b><br>Оролт конденсаторын хүчдэлээс бага болмогц дөрвөн диод хаагдана. Ачааг конденсатор тэжээж, цэнэгээ алдана.</div>
+    </div>
+
+    <h3>Анхаарах дөрвөн зүйл</h3>
+    <ul class="plain">
+      <li>Гүйдлийн зам хоёр диодоор дамжих тул диод бүр дээр ≈ 0.7 В унаж, гаралтын оргил оролтын оргилоос ≈ 1.4 В бага байна.</li>
+      <li>Ачаагаар гүйдэл хоёр давлагад ижил чиглэлтэй (дээрээс доош) урсана. Тиймээс V<sub>OUT</sub> нэг туйлтай.</li>
+      <li>Гаралтын лугшилтын давтамж 2 × 50 = 100 Гц (хагас үеийн шулуутгагчид 50 Гц).</li>
+      <li>Хаалттай диод дээр ойролцоогоор U<sub>max</sub> хүртэл урвуу хүчдэл унана. Энэ нь 1N4007-ийн 1000 В-оос хамаагүй бага.</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h2>Тооцоо ба томьёо</h2>
+    <p>Шүүргүй бүтэн үеийн шулуутгагчийн ачаа дээрх хүчдэл, гүйдэл, чадал:</p>
+    <div class="eq">U<sub>dc</sub> = 2·U<sub>max</sub> / π = 0.637 · U<sub>max</sub></div>
+    <div class="eq">U<sub>max</sub> = U<sub>s</sub> · 1.414 &nbsp;буюу&nbsp; U<sub>s</sub> = U<sub>max</sub> · 0.707</div>
+    <div class="eq">I<sub>dc</sub> = U<sub>dc</sub> / R &nbsp;&nbsp;&nbsp; P<sub>dc</sub> = U<sub>dc</sub> · I<sub>dc</sub> = I<sub>dc</sub>² · R = U<sub>dc</sub>² / R</div>
+    <div class="note">Бодит хэлхээнд гүйдлийн замд хоёр диод байдаг тул оргил хүчдэл U<sub>max</sub> − 2·U<sub>f</sub> ≈ U<sub>max</sub> − 1.4 В болж, U<sub>dc</sub> нь томьёоноос бага зэрэг бага гарна.</div>
+    <p>Шүүртэй үед лугшилт, цаг тогтмол, АҮК:</p>
+    <div class="eq">V<sub>r</sub> = I<sub>L</sub> / (f · C), &nbsp; f = 100 Гц &nbsp;&nbsp;&nbsp; τ = R · C &nbsp;&nbsp;&nbsp; η = P<sub>dc</sub> / P<sub>ac</sub> = 8/π² ≈ 81 %</div>
+    <p class="muted">АҮК (η) нь ачаанд очсон тогтмол гүйдлийн чадлыг шулуутгагчид орох хувьсах гүйдлийн чадалд харьцуулсан харьцаа. Идеал бүтэн үеийн шулуутгагчид ≈ 81 %, хагас үеийнхэд ≈ 40.5 %.</p>
+
+    <h3>Тооцоолуур</h3>
+    <div class="ctrl">
+      <label class="field">V<sub>IN</sub> = U<sub>s</sub>, В <input type="number" id="kUs" value="12" min="1" max="50" step="0.5"></label>
+      <label class="field">R <select id="kR"><option value="1000">1 кΩ</option><option value="4700" selected>4.7 кΩ</option><option value="10000">10 кΩ</option></select></label>
+      <label class="field">Шүүр C <select id="kC"><option value="0">Шүүргүй</option><option value="2.2e-6" selected>2.2 µF</option><option value="10e-6">10 µF</option><option value="47e-6">47 µF</option><option value="100e-6">100 µF</option></select></label>
+    </div>
+    <div class="tblwrap"><table class="tbl sm"><tbody id="kOut"></tbody></table></div>
+    <p class="muted" style="margin-top:8px">V<sub>r</sub> томьёо нь лугшилт V<sub>DC</sub>-ээс хамаагүй бага үед нарийн. 2.2 µF үед лугшилт их тул загварын V<sub>pp</sub>-ээс зөрнө. Багтаамжийг 47 µF болгож томьёо загвартай давхцахыг шалга.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Шүүр лугшилтыг хэрхэн багасгадаг вэ?</h2>
+    <p>Конденсатор ачаатай зэрэгцээ залгагдсан. Оргилын орчимд оролтын хүчдэл (диодын 1.4 В-ыг хасаад) конденсаторын хүчдэлээс их болмогц диодууд нээгдэж C-г цэнэглэнэ. Оргилоос хойш оролт буурахад диодууд хаагдаж, C ачаагаар цэнэгээ алдана: U<sub>C</sub>(t) = U<sub>C0</sub> · e<sup>−t/RC</sup>. Дараагийн давлагын оргил (10 мс-ийн дараа) C-г дахин цэнэглэнэ. Энэ цэнэглэх, алдах давталтаас гаралтын хүчдэлд лугшилт V<sub>r</sub> үүснэ.</p>
+    <ul class="plain">
+      <li>R бага (гүйдэл их) бол C хурдан цэнэгээ алдаж, лугшилт их болно.</li>
+      <li>C их бол ижил гүйдэлд хүчдэлийн уналт бага, лугшилт бага болно.</li>
+      <li>Бүтэн үед f = 100 Гц тул цэнэг алдах хугацаа хагас үеийнхээс хоёр дахин богино. Ижил лугшилтад хоёр дахин бага багтаамж хангалттай.</li>
+    </ul>
+    <div class="tblwrap"><table class="tbl">
+      <thead><tr><th>R</th><th>τ = R · C (C = 2.2 µF)</th><th>Давлагын хагас үе T/2</th></tr></thead>
+      <tbody><tr><td>1 кΩ</td><td>2.2 мс</td><td rowspan="3">10 мс</td></tr><tr><td>4.7 кΩ</td><td>10.3 мс</td></tr><tr><td>10 кΩ</td><td>22 мс</td></tr></tbody>
+    </table></div>
+    <p style="margin-top:10px">τ нь 10 мс-ээс хэдий чинээ их байна, лугшилт төдий чинээ бага байна. 2.2 µF нь жижиг багтаамж тул лабт лугшилт тод харагдана. Дээрх загварт C-г 47 µF, 100 µF болгож лугшилт хэрхэн алга болохыг ажигла.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Түгээмэл алдаа</h2>
+    <div class="warn"><ul>
+      <li><b>Диодын чиглэлийг буруу тавих.</b> Нэг давлагад хоёр диод цуваагаар ачааг тойроод эх үүсвэрийг богиносгоно. Диод, трансформатор гэмтнэ.</li>
+      <li><b>Электролит конденсаторын туйлыг буруу холбох.</b> Конденсатор халж хөөрнө.</li>
+      <li><b>Мультиметрийн AC/DC тавил буруу.</b> Тогтмол хүчдэлийг AC горимд, эсвэл V<sub>IN</sub>-ийг DC горимд хэмжвэл ≈ 0 В заана.</li>
+      <li><b>Мультиметрийн кабелийг буруу үүрэнд холбох.</b> Хар кабель COM, улаан кабель хүчдэл хэмжих үүрэнд байна.</li>
+      <li><b>Осциллографын хоёр сувгийн газрыг өөр өөр цэгт холбох.</b> Газрууд дотроо холбоотой тул богино залгаа үүснэ. Лабт зөвхөн V<sub>OUT</sub>-ийг хэмжинэ.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ================= 3. СХЕМ УГСРАХ ================= -->
+<section id="tab2" class="tabpanel" role="tabpanel" aria-labelledby="tb2">
+  <div class="panel">
+    <h2>Схем угсрах дасгал</h2>
+    <p><b>Даалгавар.</b> Зураг 2.1 (шүүргүй), дараа нь Зураг 2.2 (шүүртэй) схемийг холболтын талбарт угсар.</p>
+    <ul class="plain">
+      <li>Элементийг баруун талын тавиураас чирч тохирох байрлал дээр тавина. Чирэх боломжгүй бол элементийг товшоод, дараа нь байрлалыг товшино.</li>
+      <li>Диодыг тавьсны дараа түүн дээр товшиж чиглэлийг эргүүлнэ. Баруун өнцөг нь гаралтын (+), зүүн өнцөг нь (−) 0 В.</li>
+      <li>Ачааллын эсэргүүцэл R-ийг сонго (жишээ нь 4.7 кΩ). 2-р шатанд R-тэй зэрэгцээ конденсатор нэм.</li>
+      <li>Дууссаны дараа «Багшид шалгуулах»-ыг дарна. Зөвшөөрөл авсны дараа л тэжээл залгана.</li>
+    </ul>
+    <div class="stagebar" role="group" aria-label="Шат">
+      <button class="stagebtn" id="stageBtn1" aria-pressed="true" type="button">1-р шат: шүүргүй (Зураг 2.1)<span class="tick">✓</span></button>
+      <button class="stagebtn" id="stageBtn2" aria-pressed="false" type="button">2-р шат: шүүртэй (Зураг 2.2)<span class="tick">✓</span></button>
+    </div>
+
+    <div class="asm">
+      <div>
+        <div class="bench benchscroll" id="asmBench"><svg id="asmSvg" viewBox="0 0 900 470" role="img" aria-label="Схем угсрах талбар"></svg></div>
+        <p class="muted scrollnote">Жижиг дэлгэц дээр схемийг хажуу тийш гүйлгэж болно.</p>
+        <p class="muted narrownote">Жижиг дэлгэц дээр схемийн зүүн талын трансформаторыг нуусан. Элементүүд доор бэхлэгдсэн тавиур дээр байна.</p>
+        <div class="actbar" id="asmBar" hidden>
+          <span id="asmBarTxt"></span>
+          <button class="btn" id="btnFlip" type="button">Чиглэл эргүүлэх</button>
+          <button class="btn" id="btnTake" type="button">Тавиур руу буцаах</button>
+        </div>
+        <div class="msg" id="asmMsg" role="status" aria-live="polite">Элементийг тавиураас чирж байрлал дээр тавина уу.</div>
+        <div class="btnrow">
+          <button class="btn primary" id="btnCheck" type="button">Багшид шалгуулах</button>
+          <button class="btn go" id="btnPower" type="button">Тэжээл залгах (220 В)</button>
+          <button class="btn" id="btnHint" type="button">Зөвлөмж</button>
+          <button class="btn danger" id="btnReset" type="button">Дахин эхлэх</button>
+        </div>
+        <div class="confirm" id="pwrConfirm" hidden>
+          <b>Багш схемийг шалгаагүй байна.</b> Бодит лабд ингэж болохгүй. Харин энэ сургалтын загварт буруу холболтын үр дагаврыг аюулгүйгээр үзэж болно.
+          <div class="btnrow"><button class="btn danger" id="btnForce" type="button">Шалгуулалгүй залгаж үзэх</button><button class="btn" id="btnNoForce" type="button">Болих</button></div>
+        </div>
+        <div class="pwr" id="pwrPanel" hidden>
+          <div class="ctrl">
+            <label class="field">V<sub>IN</sub> (үйлчлэх утга)
+              <select id="pwrVrms"><option value="6">6 В</option><option value="9">9 В</option><option value="12" selected>12 В</option><option value="15">15 В</option><option value="18">18 В</option></select>
+            </label>
+            <span class="muted">Схемд өөрчлөлт хийхийн өмнө тэжээлийг салгана.</span>
+          </div>
+          <div class="stats" id="pwrStats"></div>
+          <canvas class="wave" id="asmWave" data-ratio="0.36" aria-label="Угсарсан схемийн хүчдэлийн хэлбэр"></canvas>
+          <p class="muted" style="margin-top:8px">Цэнхэр — V<sub>IN</sub>, ягаан — V<sub>OUT</sub>. Хэмжилтийг «Хэмжилт» хэсэгт үргэлжлүүл.</p>
+        </div>
+      </div>
+      <aside class="tray" aria-label="Элементүүд">
+        <h3>Элементүүд</h3>
+        <div class="trayl" id="tray"></div>
+        <p class="muted" style="margin-top:8px">Зарим элемент энэ лабт хэрэггүй. Аль нь тохирохыг өөрөө сонго.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4. ХЭМЖИЛТ ================= -->
+<section id="tab3" class="tabpanel" role="tabpanel" aria-labelledby="tb3">
+  <div class="panel">
+    <h2>Виртуал хэмжилт</h2>
+    <p>Мультиметр, осциллографаар Хүснэгт 2.1-ийг бөглө. Загвар нь идеал (диод бүр дээр 0.7 В уналт, трансформаторын дотоод эсэргүүцэлгүй) тул бодит хэмжилтээс бага зэрэг ялгаатай гарч болно.</p>
+    <div class="ctrl">
+      <label class="field">Трансформаторын хоёрдогч хүчдэл
+        <select id="mVrms"><option value="6">6 В</option><option value="9">9 В</option><option value="12" selected>12 В</option><option value="15">15 В</option><option value="18">18 В</option></select>
+      </label>
+      <label class="field">Ачааллын эсэргүүцэл R
+        <select id="mR"><option value="1000">1 кΩ</option><option value="4700" selected>4.7 кΩ</option><option value="10000">10 кΩ</option></select>
+      </label>
+      <label class="check"><input type="checkbox" id="mFilt"><span>Шүүр 2.2 µF залгасан (Зураг 2.2)</span></label>
+    </div>
+
+    <div class="instr">
+      <div class="meter">
+        <h3 style="margin-top:0">Мультиметр UT58A</h3>
+        <div class="lcd"><span class="tag" id="lcdTag">DC</span><span class="v" id="lcdV">0.00</span><span class="u">V</span></div>
+        <div class="field">Хаана хэмжих вэ
+          <div class="seg" id="segProbe"><button type="button" data-v="in" aria-pressed="false">V<sub>IN</sub> (ороомог)</button><button type="button" data-v="out" aria-pressed="true">V<sub>OUT</sub> (гаралт)</button></div>
+        </div>
+        <div class="field">Хэмжих тавил
+          <div class="seg" id="segMode"><button type="button" data-v="dc" aria-pressed="true">V DC</button><button type="button" data-v="ac" aria-pressed="false">V AC</button></div>
+        </div>
+      </div>
+      <div class="scopebox">
+        <canvas id="scope" data-ratio="0.8" aria-label="Осциллографын дэлгэц"></canvas>
+        <div class="scopectl">
+          <label class="field">Хугацаа/дел <select id="sTime"><option value="1">1 мс</option><option value="2">2 мс</option><option value="5" selected>5 мс</option><option value="10">10 мс</option></select></label>
+          <label class="field">CH2 (V<sub>OUT</sub>) В/дел <select id="sV2"><option value="1">1 В</option><option value="2">2 В</option><option value="5" selected>5 В</option><option value="10">10 В</option></select></label>
+          <label class="check"><input type="checkbox" id="sAc"><span>CH2 AC холбоос</span></label>
+          <label class="check"><input type="checkbox" id="sShow1" checked><span>CH1 (V<sub>IN</sub>, загвар)</span></label>
+        </div>
+        <p class="scopeinfo" id="sInfo"></p>
+      </div>
+    </div>
+    <div class="note">Бодит лабд осциллографын газар дотроо холбоотой тул V<sub>IN</sub> ба V<sub>OUT</sub>-ийг нэг зэрэг хэмжихгүй. Зөвхөн V<sub>OUT</sub>-ийг (газар 0 В цэгт, зонд (+) цэгт) хэмжинэ. CH1 нь харьцуулахад зориулсан загвар. «CH2 AC холбоос»-ыг сонговол тогтмол хэсэг хасагдаж лугшилтыг том харж болно.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Хүснэгт 2.1. Гаралтын хүчдэл V<sub>OUT</sub></h2>
+    <p>Оролтын хүчдэл: V<sub>IN</sub> = <input type="text" inputmode="decimal" id="tVin" style="width:84px;text-align:center" aria-label="Оролтын хүчдэл"> В</p>
+    <div class="tblwrap"><table class="tbl" id="t21">
+      <thead>
+        <tr><th rowspan="2">№</th><th rowspan="2">R</th><th colspan="2">Шүүргүй</th><th colspan="2">Шүүртэй</th></tr>
+        <tr><th>V<sub>AC</sub> (В)</th><th>V<sub>DC</sub> (В)</th><th>V<sub>AC</sub> (В)</th><th>V<sub>DC</sub> (В)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>1 кΩ</td><td><input type="text" inputmode="decimal" data-r="1000" data-f="0" data-k="ac"></td><td><input type="text" inputmode="decimal" data-r="1000" data-f="0" data-k="dc"></td><td><input type="text" inputmode="decimal" data-r="1000" data-f="1" data-k="ac"></td><td><input type="text" inputmode="decimal" data-r="1000" data-f="1" data-k="dc"></td></tr>
+        <tr><td>2</td><td>4.7 кΩ</td><td><input type="text" inputmode="decimal" data-r="4700" data-f="0" data-k="ac"></td><td><input type="text" inputmode="decimal" data-r="4700" data-f="0" data-k="dc"></td><td><input type="text" inputmode="decimal" data-r="4700" data-f="1" data-k="ac"></td><td><input type="text" inputmode="decimal" data-r="4700" data-f="1" data-k="dc"></td></tr>
+        <tr><td>3</td><td>10 кΩ</td><td><input type="text" inputmode="decimal" data-r="10000" data-f="0" data-k="ac"></td><td><input type="text" inputmode="decimal" data-r="10000" data-f="0" data-k="dc"></td><td><input type="text" inputmode="decimal" data-r="10000" data-f="1" data-k="ac"></td><td><input type="text" inputmode="decimal" data-r="10000" data-f="1" data-k="dc"></td></tr>
+      </tbody>
+    </table></div>
+    <div class="btnrow">
+      <button class="btn primary" id="btnTCheck" type="button">Хүснэгтийг шалгах</button>
+      <button class="btn" id="btnTShow" type="button">Хариуг харуулах</button>
+    </div>
+    <div class="msg" id="tRes" role="status" aria-live="polite">Мультиметрээр хэмжсэн утгаа хүснэгтэд бич. Зөвшөөрөгдөх алдаа ≈ 6 %.</div>
+    <div class="note"><b>Дүгнэлт бичихэд туслах.</b> Шүүртэй үед V<sub>DC</sub> нэмэгдэж, V<sub>AC</sub> (лугшилт) буурсныг шүүргүй үетэй харьцуул. R ихсэх тусам лугшилт яагаад багасч байгааг τ = R·C-ээр тайлбарла.</div>
+  </div>
+</section>
+
+<!-- ================= 5. ХЯНАЛТЫН АСУУЛТ ================= -->
+<section id="tab4" class="tabpanel" role="tabpanel" aria-labelledby="tb4">
+  <div class="panel">
+    <h2>Хяналтын асуулт</h2>
+    <p>12 асуултад хариулаад «Дүн гаргах»-ыг дарна. Хариулт бүрийн тайлбарыг дүн гаргасны дараа харна.</p>
+    <div id="quizBox"></div>
+    <div class="btnrow">
+      <button class="btn primary" id="btnQuiz" type="button">Дүн гаргах</button>
+      <button class="btn" id="btnQuizReset" type="button">Дахин өгөх</button>
+    </div>
+    <div class="score" id="quizRes" role="status" aria-live="polite"></div>
+  </div>
+</section>
+
+</main>
+<footer class="foot">by Batgerel M.EC21</footer>
+
+<script>
+(function () {
+'use strict';
+
+/* ================= Туслах ================= */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+const NS = 'http://www.w3.org/2000/svg';
+function mk(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+function num(v, d) { const s = (+v).toFixed(d == null ? 2 : d); return s.replace(/^-(0\.?0*)$/, '$1'); }
+function signed(v, d) { const s = num(v, d); return (v > 0 && !/^0\.?0*$/.test(s) ? '+' : '') + s; }
+const REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const rLabel = R => (R >= 1000 ? +(R / 1000).toFixed(2) + ' кΩ' : R + ' Ω');
+const cLabel = C => +(C * 1e6).toFixed(2) + ' µF';
+function setText(el, s) { if (el._s !== s) { el._s = s; el.textContent = s; } }
+function setHTML(el, s) { if (el._h !== s) { el._h = s; el.innerHTML = s; } }
+
+/* ================= Загвар (идеал диод, 0.7 В) ================= */
+const VF = 0.7, F_IN = 50, T_MS = 1000 / F_IN, NSAMP = 800;
+const simCache = {};
+function simulate(vrms, R, C) {
+  const key = vrms + '|' + R + '|' + C;
+  if (simCache[key]) return simCache[key];
+  const Um = vrms * Math.SQRT2, dt = T_MS / NSAMP, tau = C > 0 ? R * C * 1000 : 0;
+  const vin = new Float32Array(NSAMP), vout = new Float32Array(NSAMP), vrect = new Float32Array(NSAMP), cond = new Uint8Array(NSAMP);
+  let vc = 0;
+  const warm = 8 * NSAMP;
+  for (let n = 0; n < warm + NSAMP; n++) {
+    const u = Um * Math.sin(2 * Math.PI * (n % NSAMP) / NSAMP);
+    const vr = Math.max(Math.abs(u) - 2 * VF, 0);
+    let vo, c;
+    if (C > 0) {
+      if (vr > vc) { vc = vr; c = 1; } else { vc *= Math.exp(-dt / tau); c = 0; }
+      vo = vc;
+    } else { vo = vr; c = vr > 0 ? 1 : 0; }
+    if (n >= warm) { const k = n - warm; vin[k] = u; vout[k] = vo; vrect[k] = vr; cond[k] = c; }
+  }
+  let s = 0, s2 = 0, mn = 1e9, mx = -1e9;
+  for (let k = 0; k < NSAMP; k++) { const v = vout[k]; s += v; s2 += v * v; if (v < mn) mn = v; if (v > mx) mx = v; }
+  const Vdc = s / NSAMP, Vac = Math.sqrt(Math.max(s2 / NSAMP - Vdc * Vdc, 0));
+  const out = { vrms, R, C, Um, tau, vin, vout, vrect, cond, Vdc, Vac, Vpp: mx - mn, Vpk: mx, Idc: Vdc / R,
+    Vr_formula: C > 0 ? (Vdc / R) / (2 * F_IN * C) : null };
+  simCache[key] = out;
+  return out;
+}
+
+/* Гүүрийн диодын чиглэлийн шинжилгээ: идеал ключ + зангилааны потенциал.
+   T = дээд (a), B = доод (b), P = баруун (+), N = зүүн (−).
+   Зөв чиглэл: D1 T→P, D2 N→T, D3 N→B, D4 B→P (анод→катод). */
+const EDGES = { D1: ['T', 'P'], D2: ['N', 'T'], D3: ['N', 'B'], D4: ['B', 'P'] };
+function analyzeBridge(flips) {
+  const names = ['D1', 'D2', 'D3', 'D4'];
+  const dio = names.map(k => { let a = EDGES[k][0], c = EDGES[k][1]; if (flips[k]) { const t = a; a = c; c = t; } return { k, a, c }; });
+  const gOn = 20, gL = 1 / 4700, gmin = 1e-9;
+  const res = { status: 'ok', short: null, outs: [] };
+  [1, -1].forEach(sgn => {
+    const V = { T: 10 * sgn, B: 0 };
+    let sol = null;
+    for (let mask = 0; mask < 16 && !sol; mask++) {
+      const A = [[gmin, 0], [0, gmin]], b = [0, 0], idx = { P: 0, N: 1 };
+      const stamp = (u, v, g) => {
+        [[u, v], [v, u]].forEach(pr => {
+          const x = pr[0], y = pr[1];
+          if (x in idx) { A[idx[x]][idx[x]] += g; if (y in idx) A[idx[x]][idx[y]] -= g; else b[idx[x]] += g * V[y]; }
+        });
+      };
+      stamp('P', 'N', gL);
+      dio.forEach((d, i) => { if ((mask >> i) & 1) stamp(d.a, d.c, gOn); });
+      const det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+      const P = (b[0] * A[1][1] - A[0][1] * b[1]) / det, N = (A[0][0] * b[1] - A[1][0] * b[0]) / det;
+      const W = { T: V.T, B: V.B, P: P, N: N };
+      let ok = true;
+      dio.forEach((d, i) => { const vd = W[d.a] - W[d.c]; if ((mask >> i) & 1) { if (vd < -1e-7) ok = false; } else if (vd > 1e-7) ok = false; });
+      if (ok) sol = { mask: mask, W: W };
+    }
+    if (!sol) return;
+    const on = dio.filter((d, i) => (sol.mask >> i) & 1);
+    let iT = 0;
+    on.forEach(d => { const i = gOn * (sol.W[d.a] - sol.W[d.c]); if (d.a === 'T') iT += i; if (d.c === 'T') iT -= i; });
+    res.outs.push(sol.W.P - sol.W.N);
+    if (Math.abs(iT) > 1 && !res.short) {
+      res.short = { half: sgn, diodes: on.filter(d => gOn * Math.abs(sol.W[d.a] - sol.W[d.c]) > 1).map(d => d.k) };
+    }
+  });
+  if (res.short) res.status = 'short';
+  else if (res.outs.length === 2 && res.outs.every(v => v > 1)) res.status = 'ok';
+  else if (res.outs.length === 2 && res.outs.every(v => v < -1)) res.status = 'reversed';
+  else res.status = 'open';
+  return res;
+}
+
+/* ================= Тэмдэглэгээ (SVG) ================= */
+function st(w) { return 'stroke="#1d2440" stroke-width="' + (w || 2.4) + '" stroke-linecap="round" stroke-linejoin="round" fill="none"'; }
+function symbolInner(kind, polar) {
+  if (kind === 'diode') return '<g class="sym"><path ' + st() + ' d="M-38 0H-12M12 0H38"/><path class="tri" ' + st() + ' d="M-12 -12V12L12 0Z"/><path ' + st() + ' d="M12 -13V13"/></g>';
+  if (kind === 'zener') return '<g class="sym"><path ' + st() + ' d="M-38 0H-12M12 0H38"/><path class="tri" ' + st() + ' d="M-12 -12V12L12 0Z"/><path ' + st() + ' d="M8 -16L12 -13V13L16 16"/></g>';
+  if (kind === 'res') return '<g class="sym"><path ' + st() + ' d="M-38 0H-22L-17 -9L-9 9L-1 -9L7 9L15 -9L22 0H38"/></g>';
+  if (kind === 'cap') return '<g class="sym"><path ' + st() + ' d="M-38 0H-5M5 0H38M-5 -14V14M5 -14V14"/>' + (polar ? '<path ' + st(1.8) + ' d="M-17 -9h8M-13 -13v8"/>' : '') + '</g>';
+  return '';
+}
+const miniSvg = (kind, polar) => '<svg viewBox="-44 -22 88 44" aria-hidden="true">' + symbolInner(kind, polar) + '</svg>';
+
+const SLOT_DEF = {
+  D1: { type: 'diode', cx: 485, cy: 175, ang: 45, lx: 515, ly: 148, la: 'start' },
+  D2: { type: 'diode', cx: 375, cy: 175, ang: -45, lx: 345, ly: 148, la: 'end' },
+  D3: { type: 'diode', cx: 375, cy: 285, ang: 45, lx: 345, ly: 322, la: 'end' },
+  D4: { type: 'diode', cx: 485, cy: 285, ang: -45, lx: 515, ly: 322, la: 'start' },
+  R: { type: 'res', cx: 740, cy: 325, ang: 90, lx: 756, ly: 330, la: 'start' },
+  C: { type: 'cap', cx: 640, cy: 325, ang: 90, lx: 624, ly: 330, la: 'end', stage: 2 }
+};
+const TYPE_NAME = { diode: 'диод', res: 'эсэргүүцэл', cap: 'конденсатор' };
+
+function vsub(x, y, base, sub, anchor) {
+  return '<text class="lbl b" x="' + x + '" y="' + y + '" text-anchor="' + (anchor || 'start') + '">' + base + '<tspan font-size="11" dy="4">' + sub + '</tspan></text>';
+}
+function circuitMarkup(p) {
+  return '' +
+  '<g fill="none" stroke="#1d2440" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="35" cy="230" r="22" fill="#fff"/>' +
+    '<path d="M24 230q5.5 -12 11 0t11 0" stroke-width="2"/>' +
+    '<path d="M35 208V160H90M35 252V300H90"/>' +
+    '<path d="M90 160a17.5 17.5 0 0 1 0 35a17.5 17.5 0 0 1 0 35a17.5 17.5 0 0 1 0 35a17.5 17.5 0 0 1 0 35"/>' +
+    '<path d="M135 150V310M143 150V310"/>' +
+    '<path d="M188 160a17.5 17.5 0 0 0 0 35a17.5 17.5 0 0 0 0 35a17.5 17.5 0 0 0 0 35a17.5 17.5 0 0 0 0 35"/>' +
+    '<path d="M188 160V100H430V120"/>' +
+    '<path d="M188 300V360H281a9 9 0 0 1 18 0H430V340"/>' +
+    '<path d="M320 230L430 120L540 230L430 340Z"/>' +
+    '<path d="M320 230H290V420H820"/>' +
+    '<path d="M540 230H820"/>' +
+    '<path d="M740 230V420"/>' +
+    '<g id="' + p + '-cbr"><path d="M640 230V420"/><circle cx="640" cy="230" r="4.5" fill="#1d2440" stroke="none"/><circle cx="640" cy="420" r="4.5" fill="#1d2440" stroke="none"/></g>' +
+    '<path d="M540 420V436M526 436H554M532 443H548M538 450H542"/>' +
+    '<circle cx="820" cy="230" r="5.5" fill="#fff"/><circle cx="820" cy="420" r="5.5" fill="#fff"/>' +
+    '<path d="M232 106V354M232 106l-5 11M232 106l5 11M232 354l-5 -11M232 354l5 -11" stroke-width="1.6" stroke="#4a5275"/>' +
+    '<path d="M858 416V238M858 238l-5 11M858 238l5 11" stroke-width="1.6" stroke="#4a5275"/>' +
+  '</g>' +
+  '<g fill="#1d2440"><circle cx="430" cy="120" r="4.5"/><circle cx="430" cy="340" r="4.5"/><circle cx="320" cy="230" r="4.5"/><circle cx="540" cy="230" r="4.5"/><circle cx="740" cy="230" r="4.5"/><circle cx="740" cy="420" r="4.5"/></g>' +
+  '<g>' +
+    '<text class="lbl b" x="35" y="148" text-anchor="middle">~220 В</text>' +
+    '<text class="lbl b" x="139" y="138" text-anchor="middle">T</text>' +
+    '<text class="lbl" x="112" y="338" text-anchor="middle" font-size="12">Трансформатор</text>' +
+    vsub(224, 236, 'V', 'IN', 'end') +
+    '<text class="lbl b" x="446" y="112">a</text><text class="lbl b" x="446" y="356">b</text>' +
+    '<text class="lbl b" x="552" y="222" font-size="20">+</text><text class="lbl b" x="304" y="222" font-size="20" text-anchor="end">−</text>' +
+    vsub(858, 222, 'V', 'OUT', 'middle') +
+    '<text class="lbl" x="560" y="449">0 В (газар)</text>' +
+  '</g>' +
+  '<g class="hintg" pointer-events="none">' +
+    '<circle cx="540" cy="230" r="15" fill="none" stroke="#f2a900" stroke-width="2.4" stroke-dasharray="4 3"/>' +
+    '<circle cx="320" cy="230" r="15" fill="none" stroke="#f2a900" stroke-width="2.4" stroke-dasharray="4 3"/>' +
+    '<text class="lbl" x="556" y="204" font-size="13">катод: D1, D4</text>' +
+    '<text class="lbl" x="312" y="204" font-size="13" text-anchor="end">анод: D2, D3</text>' +
+  '</g>' +
+  '<g id="' + p + '-slots"></g>' +
+  '<g id="' + p + '-dots" pointer-events="none"></g>' +
+  '<g class="failg" pointer-events="none"><rect x="300" y="198" width="260" height="64" rx="10" fill="#fff" stroke="#c0392b" stroke-width="3"/><text x="430" y="239" text-anchor="middle" font-size="26" font-weight="700" fill="#c0392b">Богино залгаа!</text></g>';
+}
+
+function makePoly(pts) {
+  const cum = [0]; let L = 0;
+  for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); cum.push(L); }
+  return { pts, cum, L, at: function (s) {
+    s = ((s % L) + L) % L; let i = 1; while (cum[i] < s) i++;
+    const a = pts[i - 1], b = pts[i % pts.length], f = (s - cum[i - 1]) / ((cum[i] - cum[i - 1]) || 1);
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+  } };
+}
+const POLY = {
+  pos: makePoly([[188,160],[188,100],[430,100],[430,120],[540,230],[740,230],[740,420],[290,420],[290,230],[320,230],[430,340],[430,360],[188,360],[188,300]]),
+  neg: makePoly([[188,300],[188,360],[430,360],[430,340],[540,230],[740,230],[740,420],[290,420],[290,230],[320,230],[430,120],[430,100],[188,100],[188,160]]),
+  rc: makePoly([[640,230],[740,230],[740,420],[640,420]])
+};
+
+/* ================= Схемийн харагдац ================= */
+function createCircuit(svg, p, interactive) {
+  svg.innerHTML = circuitMarkup(p);
+  if (!interactive) svg.classList.add('static');
+  const view = { svg, p, slots: {}, placed: {}, dots: {}, running: false, paused: false, speed: 1, tms: 0, phase: 0, last: 0, sim: null, hasC: false, onFrame: null, stage: 2 };
+  const gs = svg.querySelector('#' + p + '-slots');
+  Object.keys(SLOT_DEF).forEach(name => {
+    const d = SLOT_DEF[name];
+    const attrs = { class: 'slot ' + d.type, 'data-slot': name };
+    if (interactive) { attrs.tabindex = '0'; attrs.role = 'button'; attrs['aria-label'] = name + ' байрлал'; }
+    const g = mk('g', attrs, gs);
+    mk('circle', { class: 'hit', cx: d.cx, cy: d.cy, r: 46 }, g);
+    const body = mk('g', { transform: 'translate(' + d.cx + ' ' + d.cy + ') rotate(' + d.ang + ')' }, g);
+    mk('rect', { class: 'slotbox', x: -40, y: -17, width: 80, height: 34, rx: 6 }, body);
+    const comp = mk('g', { class: 'comp' }, body);
+    const lbl = mk('text', { class: 'slotlbl', x: d.lx, y: d.ly, 'text-anchor': d.la }, g);
+    lbl.textContent = name;
+    view.slots[name] = { g, comp, lbl, def: d };
+  });
+  const dl = svg.querySelector('#' + p + '-dots');
+  Object.keys(POLY).forEach(key => {
+    const poly = POLY[key], n = Math.round(poly.L / 66);
+    const g = mk('g', { style: 'display:none' }, dl);
+    const cs = [];
+    for (let i = 0; i < n; i++) cs.push(mk('circle', { r: 4.4, class: 'dot' }, g));
+    view.dots[key] = { poly, g, cs, n, shown: false };
+  });
+
+  view.setComp = function (name, c) {
+    const s = view.slots[name]; view.placed[name] = c || null;
+    s.comp.innerHTML = '';
+    s.g.classList.toggle('filled', !!c);
+    if (!c) { s.lbl.textContent = name; return; }
+    s.comp.innerHTML = '<g' + (c.flip ? ' transform="rotate(180)"' : '') + '>' + symbolInner(c.kind, c.polar) + '</g>';
+    s.lbl.textContent = (name === 'R' || name === 'C') ? name + ' = ' + c.label : name;
+  };
+  view.setStage = function (n) {
+    view.stage = n;
+    const on = n >= 2;
+    view.slots.C.g.style.display = on ? '' : 'none';
+    svg.querySelector('#' + p + '-cbr').style.display = on ? '' : 'none';
+  };
+  view.setOn = function (names) {
+    ['D1', 'D2', 'D3', 'D4'].forEach(n => view.slots[n].g.classList.toggle('on', names.indexOf(n) >= 0));
+  };
+  view.hideDots = function () {
+    Object.keys(view.dots).forEach(k => { const d = view.dots[k]; d.g.style.display = 'none'; d.shown = false; });
+  };
+  view.render = function () {
+    const sim = view.sim; if (!sim) return;
+    const idx = Math.floor(((view.tms % T_MS) / T_MS) * NSAMP) % NSAMP;
+    const vin = sim.vin[idx], vout = sim.vout[idx], cond = sim.cond[idx] === 1, pos = vin >= 0;
+    view.setOn(cond ? (pos ? ['D1', 'D3'] : ['D2', 'D4']) : []);
+    let key = null;
+    if (cond) key = pos ? 'pos' : 'neg'; else if (view.hasC && vout > 0.05) key = 'rc';
+    const a = 0.3 + 0.7 * clamp(vout / (sim.Vpk || 1), 0, 1);
+    Object.keys(view.dots).forEach(k => {
+      const d = view.dots[k];
+      if (k !== key) { if (d.shown) { d.g.style.display = 'none'; d.shown = false; } return; }
+      if (!d.shown) { d.g.style.display = ''; d.shown = true; }
+      d.g.setAttribute('opacity', a.toFixed(2));
+      for (let i = 0; i < d.n; i++) {
+        const pt = d.poly.at(i * d.poly.L / d.n + view.phase);
+        d.cs[i].setAttribute('cx', pt[0].toFixed(1)); d.cs[i].setAttribute('cy', pt[1].toFixed(1));
+      }
+    });
+    if (view.onFrame) view.onFrame({ tms: view.tms, idx, vin, vout, cond, pos, key, sim });
+  };
+  view.tick = function (ts) {
+    if (!view.running) return;
+    const dt = Math.min((ts - view.last) / 1000, 0.1); view.last = ts;
+    if (!view.paused) { view.tms += dt * 10 * view.speed; view.phase += dt * 120 * Math.min(view.speed, 1.6); }
+    view.render();
+    view.raf = requestAnimationFrame(view.tick);
+  };
+  view.start = function () { if (view.running) return; view.running = true; view.last = performance.now(); view.raf = requestAnimationFrame(view.tick); };
+  view.stop = function () { view.running = false; if (view.raf) cancelAnimationFrame(view.raf); };
+  view.setStage(1);
+  const mq = window.matchMedia ? window.matchMedia('(max-width: 720px)') : null;
+  const setVb = () => svg.setAttribute('viewBox', mq && mq.matches ? '262 84 628 380' : '0 0 900 470');
+  setVb(); if (mq && mq.addEventListener) mq.addEventListener('change', setVb);
+  return view;
+}
+
+/* ================= Canvas зураг ================= */
+function fitCanvas(c) {
+  const w = c.clientWidth; if (!w) return false;
+  const dpr = window.devicePixelRatio || 1, h = Math.round(w * (+c.dataset.ratio || 0.36));
+  if (c._w !== w || c._dpr !== dpr) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = h + 'px'; c._w = w; c._dpr = dpr; c._h = h; }
+  return true;
+}
+function drawWave(c, sim, tms, showRect) {
+  if (!fitCanvas(c)) return;
+  const ctx = c.getContext('2d'), dpr = c._dpr, W = c._w, H = c._h;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const L = 40, Rr = 10, Tt = 12, Bb = 26, pw = W - L - Rr, ph = H - Tt - Bb;
+  const vmax = Math.max(10, Math.ceil(sim.Um * 1.12 / 5) * 5);
+  const X = t => L + t / 40 * pw, Y = v => Tt + ph / 2 - v / vmax * ph / 2;
+  ctx.font = '12px "Segoe UI",Arial,sans-serif'; ctx.textBaseline = 'middle'; ctx.lineWidth = 1;
+  const step = vmax > 20 ? 10 : 5;
+  for (let v = -vmax; v <= vmax; v += step) {
+    ctx.strokeStyle = v === 0 ? '#9aa3c9' : '#e3e6f5'; ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(L + pw, Y(v)); ctx.stroke();
+    ctx.fillStyle = '#7a82a3'; ctx.textAlign = 'right'; ctx.fillText(String(v), L - 6, Y(v));
+  }
+  for (let t = 0; t <= 40; t += 10) {
+    ctx.strokeStyle = '#e3e6f5'; ctx.beginPath(); ctx.moveTo(X(t), Tt); ctx.lineTo(X(t), Tt + ph); ctx.stroke();
+    ctx.fillStyle = '#7a82a3'; ctx.textAlign = t === 40 ? 'right' : 'center'; ctx.fillText(t + ' мс', X(t), H - 11);
+  }
+  const line = (arr, color, w, dash) => {
+    ctx.beginPath();
+    for (let i = 0; i <= 2 * NSAMP; i += 2) { const t = i * T_MS / NSAMP, v = arr[i % NSAMP]; if (i) ctx.lineTo(X(t), Y(v)); else ctx.moveTo(X(t), Y(v)); }
+    ctx.strokeStyle = color; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
+  };
+  line(sim.vin, '#2f6fed', 2);
+  if (showRect) line(sim.vrect, '#9aa3c9', 1.6, [5, 4]);
+  line(sim.vout, '#d6336c', 2.6);
+  const tc = tms % 40;
+  ctx.strokeStyle = '#f2a900'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(tc), Tt); ctx.lineTo(X(tc), Tt + ph); ctx.stroke();
+  const idx = Math.floor(((tc % T_MS) / T_MS) * NSAMP) % NSAMP;
+  [[sim.vin[idx], '#2f6fed'], [sim.vout[idx], '#d6336c']].forEach(m => { ctx.fillStyle = m[1]; ctx.beginPath(); ctx.arc(X(tc), Y(m[0]), 4.5, 0, 6.2832); ctx.fill(); });
+}
+
+/* ================= Хуудас, таб ================= */
+const tabs = $$('.tab'), panels = $$('.tabpanel');
+let Demo, Asm, Meas;
+function goTab(i) {
+  tabs.forEach((t, k) => { t.setAttribute('aria-selected', k === i ? 'true' : 'false'); t.tabIndex = k === i ? 0 : -1; });
+  panels.forEach((p, k) => p.classList.toggle('active', k === i));
+  Demo.setActive(i === 1); Asm.setActive(i === 2); Meas.setActive(i === 3);
+}
+function initTabs() {
+  tabs.forEach((t, k) => {
+    t.addEventListener('click', () => { goTab(k); const m = $('#main'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'start' }); });
+    t.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = (k + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length; goTab(n); tabs[n].focus(); }
+    });
+  });
+  $$('[data-go]').forEach(b => b.addEventListener('click', () => { goTab(+b.dataset.go); const m = $('#main'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'start' }); }));
+}
+
+function initChecklists() {
+  const upd = () => {
+    const eq = $$('#eqList li'), stp = $$('#stepListA li, #stepListB li');
+    setText($('#eqProg'), 'Бэлэн: ' + eq.filter(l => l.classList.contains('done')).length + ' / ' + eq.length);
+    setText($('#stProg'), 'Гүйцэтгэсэн алхам: ' + stp.filter(l => l.classList.contains('done')).length + ' / ' + stp.length);
+  };
+  $$('.chk li').forEach(li => {
+    li.tabIndex = 0; li.setAttribute('role', 'checkbox'); li.setAttribute('aria-checked', 'false');
+    const tog = () => { li.classList.toggle('done'); li.setAttribute('aria-checked', li.classList.contains('done') ? 'true' : 'false'); upd(); };
+    li.addEventListener('click', tog);
+    li.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); tog(); } });
+  });
+  upd();
+}
+
+/* ================= Ажиллах зарчим: загвар ================= */
+Demo = (function () {
+  const svg = $('#demoSvg'), view = createCircuit(svg, 'd', false);
+  ['D1', 'D2', 'D3', 'D4'].forEach(n => view.setComp(n, { kind: 'diode', label: '1N4007', flip: 0 }));
+  const el = { vrms: $('#dVrms'), R: $('#dR'), f: $('#dFilter'), C: $('#dC'), sp: $('#dSpeed'), play: $('#dPlay'), now: $('#dNow'), st: $('#dState'), wave: $('#dWave'), cp: $('#cardPos'), cn: $('#cardNeg'), cf: $('#cardFilt') };
+  function rebuild() {
+    const vrms = +el.vrms.value, R = +el.R.value, filt = el.f.checked, C = filt ? +el.C.value : 0;
+    el.C.disabled = !filt;
+    view.setComp('R', { kind: 'res', label: rLabel(R), value: R });
+    view.setStage(filt ? 2 : 1);
+    view.setComp('C', filt ? { kind: 'cap', label: cLabel(C), value: C, polar: true } : null);
+    view.hasC = filt; view.sim = simulate(vrms, R, C); view.render();
+  }
+  view.onFrame = function (info) {
+    drawWave(el.wave, info.sim, info.tms, info.sim.C > 0);
+    const t = info.tms % T_MS, filt = info.sim.C > 0;
+    let s;
+    if (info.cond) s = info.pos ? 'Эерэг давлага: D1 ба D3 нээлттэй, D2 ба D4 хаалттай' : 'Сөрөг давлага: D2 ба D4 нээлттэй, D1 ба D3 хаалттай';
+    else s = filt && info.vout > 0.05 ? 'Дөрвөн диод хаалттай. Ачааг конденсатор тэжээж, цэнэгээ алдаж байна' : 'Оролтын хүчдэл 1.4 В-оос бага тул дөрвөн диод хаалттай';
+    setText(el.st, s);
+    setHTML(el.now, 't = ' + num(t, 1) + ' мс &nbsp; V<sub>IN</sub> = ' + signed(info.vin) + ' В &nbsp; V<sub>OUT</sub> = ' + num(info.vout) + ' В');
+    el.cp.classList.toggle('active', info.cond && info.pos);
+    el.cn.classList.toggle('active', info.cond && !info.pos);
+    el.cf.classList.toggle('active', filt && !info.cond);
+  };
+  ['change', 'input'].forEach(ev => { el.vrms.addEventListener(ev, rebuild); el.R.addEventListener(ev, rebuild); el.f.addEventListener(ev, rebuild); el.C.addEventListener(ev, rebuild); });
+  el.sp.addEventListener('input', () => { view.speed = +el.sp.value; });
+  function setPaused(p) { view.paused = p; el.play.textContent = p ? 'Үргэлжлүүлэх' : 'Түр зогсоох'; }
+  el.play.addEventListener('click', () => setPaused(!view.paused));
+  setPaused(REDUCED);
+  rebuild();
+  return { view, setActive: a => { if (a) { view.start(); } else view.stop(); } };
+})();
+
+/* ================= Тооцоолуур ================= */
+(function () {
+  const us = $('#kUs'), r = $('#kR'), c = $('#kC'), out = $('#kOut');
+  function upd() {
+    const Us = clamp(+us.value || 0, 0.1, 100), R = +r.value, C = +c.value;
+    const Um = Us * 1.414, Udc = 2 * Um / Math.PI, Idc = Udc / R * 1000, Pdc = Udc * Idc;
+    const sim = simulate(Us, R, C);
+    const rows = [
+      ['U<sub>max</sub> = U<sub>s</sub> · 1.414', num(Um) + ' В'],
+      ['U<sub>dc</sub> = 2·U<sub>max</sub> / π (идеал)', num(Udc) + ' В'],
+      ['I<sub>dc</sub> = U<sub>dc</sub> / R', num(Idc, 3) + ' мА'],
+      ['P<sub>dc</sub> = U<sub>dc</sub> · I<sub>dc</sub>', num(Pdc) + ' мВт'],
+      ['Диодын уналттай бодит U<sub>dc</sub> (загвар, ' + (C > 0 ? 'шүүртэй' : 'шүүргүй') + ')', num(sim.Vdc) + ' В'],
+      ['Гаралтын лугшилт V<sub>pp</sub> (загвар)', num(sim.Vpp) + ' В']
+    ];
+    if (C > 0) { rows.push(['τ = R · C', num(R * C * 1000, 1) + ' мс']); rows.push(['V<sub>r</sub> = I<sub>L</sub> / (f · C), f = 100 Гц (томьёо)', num(sim.Vr_formula) + ' В']); }
+    out.innerHTML = rows.map(x => '<tr><td>' + x[0] + '</td><td><b>' + x[1] + '</b></td></tr>').join('');
+  }
+  ['input', 'change'].forEach(ev => { us.addEventListener(ev, upd); r.addEventListener(ev, upd); c.addEventListener(ev, upd); });
+  upd();
+})();
+
+/* ================= Схем угсрах дасгал ================= */
+Asm = (function () {
+  const svg = $('#asmSvg'), view = createCircuit(svg, 'a', true), bench = $('#asmBench');
+  const PARTS = [
+    { id: 'd1', kind: 'diode', label: '1N4007', name: 'Диод 1N4007' }, { id: 'd2', kind: 'diode', label: '1N4007', name: 'Диод 1N4007' },
+    { id: 'd3', kind: 'diode', label: '1N4007', name: 'Диод 1N4007' }, { id: 'd4', kind: 'diode', label: '1N4007', name: 'Диод 1N4007' },
+    { id: 'z1', kind: 'zener', label: 'Зенер 6.2 В', name: 'Зенер диод 6.2 В' },
+    { id: 'r1', kind: 'res', value: 1000, label: '1 кΩ', name: 'Эсэргүүцэл 1 кΩ' },
+    { id: 'r2', kind: 'res', value: 4700, label: '4.7 кΩ', name: 'Эсэргүүцэл 4.7 кΩ' },
+    { id: 'r3', kind: 'res', value: 10000, label: '10 кΩ', name: 'Эсэргүүцэл 10 кΩ' },
+    { id: 'c1', kind: 'cap', value: 2.2e-6, label: '2.2 µF', name: 'Конденсатор 2.2 µF', polar: true },
+    { id: 'c2', kind: 'cap', value: 47e-6, label: '47 µF', name: 'Конденсатор 47 µF', polar: true }
+  ];
+  const A = { stage: 1, placed: {}, sel: null, selSlot: null, approved: false, attempts: 0, powered: false, done: { 1: false, 2: false }, failTimer: null };
+  const el = { tray: $('#tray'), msg: $('#asmMsg'), bar: $('#asmBar'), barTxt: $('#asmBarTxt'), flip: $('#btnFlip'), take: $('#btnTake'), check: $('#btnCheck'), power: $('#btnPower'), hint: $('#btnHint'), reset: $('#btnReset'), confirm: $('#pwrConfirm'), force: $('#btnForce'), noforce: $('#btnNoForce'), pwr: $('#pwrPanel'), vrms: $('#pwrVrms'), stats: $('#pwrStats'), wave: $('#asmWave'), s1: $('#stageBtn1'), s2: $('#stageBtn2') };
+  const POWER_WARN = '<b>Аюулгүй ажиллагаа:</b> схемийг өөрчлөхийн өмнө тэжээлийг салгана. «Тэжээл салгах» товчийг дар.';
+  const byId = id => PARTS.filter(p => p.id === id)[0];
+  const isPlaced = id => Object.keys(A.placed).some(n => A.placed[n].id === id);
+  const slotNames = () => Object.keys(SLOT_DEF).filter(n => !SLOT_DEF[n].stage || A.stage >= SLOT_DEF[n].stage);
+  const RULE = ' Дүрэм: D1, D4-ийн катод (зураас) баруун (+) өнцөгт, D2, D3-ийн анод зүүн (−) өнцөгт нийлнэ.';
+
+  function setMsg(html, kind) { el.msg.className = 'msg ' + (kind || ''); el.msg.innerHTML = html; }
+  function changed() { A.approved = false; A.done[A.stage] = false; el.confirm.hidden = true; }
+
+  function renderTray() {
+    el.tray.innerHTML = '';
+    PARTS.forEach(p => {
+      if (isPlaced(p.id)) return;
+      const d = document.createElement('div');
+      d.className = 'part' + (A.sel === p.id ? ' sel' : '') + (p.kind === 'cap' && A.stage < 2 ? ' dis' : '');
+      d.dataset.id = p.id; d.tabIndex = 0; d.setAttribute('role', 'button'); d.setAttribute('aria-label', p.name);
+      d.innerHTML = miniSvg(p.kind, p.polar) + '<span>' + p.label + '</span>';
+      el.tray.appendChild(d);
+    });
+    if (!el.tray.children.length) el.tray.innerHTML = '<p class="muted">Бүх элемент байрлуулсан.</p>';
+  }
+  function renderBar() {
+    const n = A.selSlot, pl = n && A.placed[n];
+    el.bar.hidden = !pl;
+    if (!pl) return;
+    el.barTxt.textContent = 'Сонгосон: ' + n + ' (' + byId(pl.id).label + ')';
+    el.flip.style.display = SLOT_DEF[n].type === 'diode' ? '' : 'none';
+    el.flip.disabled = el.take.disabled = A.powered;
+  }
+  function renderStageBtns() {
+    el.s1.setAttribute('aria-pressed', A.stage === 1 ? 'true' : 'false'); el.s2.setAttribute('aria-pressed', A.stage === 2 ? 'true' : 'false');
+    el.s1.classList.toggle('passed', !!A.done[1]); el.s2.classList.toggle('passed', !!A.done[2]);
+  }
+  function renderButtons() {
+    el.power.textContent = A.powered ? 'Тэжээл салгах' : 'Тэжээл залгах (220 В)';
+    el.power.classList.toggle('off', A.powered); el.power.classList.toggle('go', !A.powered);
+    el.check.disabled = A.powered;
+  }
+  function refresh() {
+    Object.keys(SLOT_DEF).forEach(n => {
+      const pl = A.placed[n];
+      if (pl) { const p = byId(pl.id); view.setComp(n, { kind: p.kind, label: p.label, value: p.value, polar: p.polar, flip: pl.flip }); }
+      else view.setComp(n, null);
+      view.slots[n].g.classList.toggle('sel', A.selSlot === n && !!pl);
+    });
+    view.setStage(A.stage);
+    renderTray(); renderBar(); renderStageBtns(); renderButtons();
+  }
+
+  function place(id, slot) {
+    const part = byId(id), def = SLOT_DEF[slot];
+    if (def.stage && A.stage < def.stage) return;
+    if (part.kind !== def.type) {
+      A.sel = null;
+      if (part.kind === 'zener' && def.type === 'diode') setMsg('Зенер диод нь хүчдэл тогтворжуулахад зориулагдсан (Лаборатори 1). Шулуутгагчид 1N4007 шулуутгагч диод хэрэглэнэ.', 'bad');
+      else setMsg('Энэ байрлалд ' + TYPE_NAME[def.type] + ' тавина. Сонгосон элемент: ' + part.name + '.', 'bad');
+      refresh(); return;
+    }
+    A.placed[slot] = { id: id, flip: def.type === 'diode' ? (Math.random() < 0.5 ? 1 : 0) : 0 };
+    A.sel = null; A.selSlot = slot; changed(); refresh();
+    if (def.type === 'diode') setMsg(slot + ': ' + part.label + ' тавигдлаа. Гурвалжны орой, катодын зураас аль өнцөг рүү чиглэснийг шалга. Буруу бол диод дээр товшиж эргүүлнэ.', 'info');
+    else if (def.type === 'res') setMsg('R = ' + part.label + ' ачаа тавигдлаа.' + (part.value !== 4700 ? ' Лабын 10-р алхам (осциллограф) 4.7 кΩ дээр хийгддэг.' : ''), 'info');
+    else setMsg('C = ' + part.label + ' конденсатор ачаатай зэрэгцээ тавигдлаа. Электролит бол (+) хөл дээд талд, (−) хөл 0 В талд байна.', 'info');
+  }
+  function takeBack(slot) {
+    if (!A.placed[slot]) return;
+    delete A.placed[slot]; A.selSlot = null; changed(); refresh();
+    setMsg(slot + ' байрлалын элементийг тавиур руу буцаалаа.', 'info');
+  }
+  function flipSlot(slot) {
+    const pl = A.placed[slot]; if (!pl || SLOT_DEF[slot].type !== 'diode') return;
+    pl.flip ^= 1; A.selSlot = slot; changed(); refresh();
+    setMsg(slot + ' диодын чиглэл өөрчлөгдлөө. Катодын зураас аль өнцөгт байгааг шалга.', 'info');
+  }
+  function slotAction(name) {
+    if (A.powered) { setMsg(POWER_WARN, 'warn'); return; }
+    const def = SLOT_DEF[name]; if (def.stage && A.stage < def.stage) return;
+    if (A.sel) { place(A.sel, name); return; }
+    if (!A.placed[name]) { setMsg('Эхлээд тавиураас элемент сонго.', 'info'); return; }
+    if (def.type === 'diode') { flipSlot(name); return; }
+    A.selSlot = name; refresh();
+  }
+
+  function setStage(n) {
+    if (A.powered) powerOff();
+    A.stage = n; if (n === 1) delete A.placed.C;
+    A.sel = null; A.selSlot = null; A.approved = false; el.confirm.hidden = true; refresh();
+    setMsg(n === 1 ? '1-р шат (Зураг 2.1): дөрвөн диод ба ачааллын эсэргүүцлийг тавь.' : '2-р шат (Зураг 2.2): ачаатай зэрэгцээ 2.2 µF конденсатор нэм. Диод, ачаа 1-р шатнаас хэвээр үлдсэн.', 'info');
+  }
+
+  function check() {
+    if (A.powered) { setMsg(POWER_WARN, 'warn'); return; }
+    A.attempts++;
+    const empty = slotNames().filter(n => !A.placed[n]);
+    if (empty.length) { setMsg('<b>Багш:</b> «Схем дутуу байна. Хоосон байрлал: ' + empty.join(', ') + '. Бүх элементийг байрлуулаад дахин шалгуул.»', 'warn'); return; }
+    const flips = {}; ['D1', 'D2', 'D3', 'D4'].forEach(n => { flips[n] = A.placed[n].flip; });
+    const an = analyzeBridge(flips), wrong = ['D1', 'D2', 'D3', 'D4'].filter(n => flips[n]);
+    if (an.status === 'short') {
+      let t = '<b>Багш:</b> «Холболт буруу. ' + (an.short.half > 0 ? 'Эерэг' : 'Сөрөг') + ' давлагын үед хоёр диод цуваагаар ачааг тойроод эх үүсвэрийг шууд холбож байна. Энэ нь богино залгаа. Диодуудын чиглэлийг дахин шалга.»';
+      if (A.attempts >= 2) t += '<br>Чиглэл буруу диод: <b>' + wrong.join(', ') + '</b>.' + RULE;
+      setMsg(t, 'bad'); return;
+    }
+    if (an.status === 'reversed') { setMsg('<b>Багш:</b> «Дөрвөн диод бүгд урвуу байна. Гаралтын туйл эсрэг (V<sub>OUT</sub> &lt; 0) болж, электролит конденсатор гэмтэнэ.»' + RULE, 'bad'); return; }
+    if (an.status === 'open') { setMsg('<b>Багш:</b> «Гаралтад хүчдэл гарахгүй байна. Диодууд гүүр үүсгэж чадахгүй байна.»' + (A.attempts >= 2 ? '<br>Чиглэл буруу диод: <b>' + wrong.join(', ') + '</b>.' + RULE : ''), 'bad'); return; }
+    const R = byId(A.placed.R.id);
+    if (A.stage >= 2) {
+      const C = byId(A.placed.C.id);
+      if (C.value !== 2.2e-6) { setMsg('<b>Багш:</b> «Шүүрийн конденсатор 2.2 µF байх ёстой. ' + C.label + ' нь энэ лабын элемент биш.»', 'bad'); return; }
+    }
+    let t = '<b>Багш:</b> «Схем зөв угсрагдсан байна. Хэмжих зөвшөөрөл олголоо. Одоо тэжээл залгаж болно.»';
+    if (R.value !== 4700) t += '<br><span class="muted">Анхаар: Лабын 10-р алхам (осциллограф) R = 4.7 кΩ үед хийгдэнэ. Одоогийн R = ' + R.label + '.</span>';
+    A.approved = true; A.done[A.stage] = true; A.attempts = 0; renderStageBtns(); setMsg(t, 'ok');
+  }
+
+  function statsHtml(sim) {
+    return [['V<sub>IN</sub>', num(sim.vrms) + ' В'], ['V<sub>DC</sub>', num(sim.Vdc) + ' В'], ['V<sub>AC</sub>', num(sim.Vac) + ' В'], ['V<sub>pp</sub>', num(sim.Vpp) + ' В'], ['I<sub>dc</sub>', num(sim.Idc * 1000) + ' мА']]
+      .map(x => '<div class="stat">' + x[0] + '<b>' + x[1] + '</b></div>').join('');
+  }
+  function simNow() {
+    const R = byId(A.placed.R.id).value, C = (A.stage >= 2 && A.placed.C) ? byId(A.placed.C.id).value : 0;
+    return simulate(+el.vrms.value, R, C);
+  }
+  function powerToggle() {
+    if (A.powered) { powerOff(); setMsg('Тэжээлийг салгалаа. Одоо схемд өөрчлөлт хийж болно.', 'info'); return; }
+    const empty = slotNames().filter(n => !A.placed[n]);
+    if (empty.length) { setMsg('Хэлхээ дутуу тул гүйдэл урсахгүй (нээлттэй хэлхээ). Хоосон байрлал: ' + empty.join(', ') + '.', 'warn'); return; }
+    if (!A.approved) { el.confirm.hidden = false; setMsg('<b>Анхаар:</b> багш схемийг шалгаагүй байна. Эхлээд «Багшид шалгуулах»-ыг дар.', 'warn'); return; }
+    runPower();
+  }
+  function runPower() {
+    el.confirm.hidden = true;
+    const flips = {}; ['D1', 'D2', 'D3', 'D4'].forEach(n => { flips[n] = A.placed[n].flip; });
+    const an = analyzeBridge(flips);
+    A.powered = true; A.selSlot = null; refresh();
+    if (an.status === 'short') { fail(an); return; }
+    if (an.status === 'reversed') { A.powered = false; refresh(); setMsg('Дөрвөн диод бүгд урвуу тул гаралтын туйл эсрэг (V<sub>OUT</sub> &lt; 0) болж байна. Бодит лабд электролит конденсатор гэмтэх байсан.' + RULE, 'bad'); return; }
+    if (an.status === 'open') { A.powered = false; refresh(); setMsg('Гаралтад хүчдэл гарахгүй байна. Диодууд гүүр үүсгэж чадахгүй байна.', 'bad'); return; }
+    const sim = simNow();
+    view.sim = sim; view.hasC = sim.C > 0; view.tms = 0;
+    el.stats.innerHTML = statsHtml(sim); el.pwr.hidden = false;
+    refresh(); view.start();
+    setMsg('Тэжээл залгагдлаа. Шар цэгүүд гүйдлийн чиглэл, ногоон диод нээлттэй байгааг заана.', 'ok');
+  }
+  function fail(an) {
+    svg.classList.add('failing');
+    an.short.diodes.forEach(n => view.slots[n].g.classList.add('bad'));
+    setMsg('<b>Богино залгаа!</b> ' + (an.short.half > 0 ? 'Эерэг' : 'Сөрөг') + ' давлагын үед ' + an.short.diodes.join(' ба ') + ' диод цуваагаар ачааг тойроод эх үүсвэрийг шууд холбож байна. Бодит лабд диод шатаж, трансформатор халах байсан. Тэжээлийг салгалаа. Чиглэлийг засаад дахин шалгуул.', 'bad');
+    A.failTimer = setTimeout(powerOff, 3200);
+  }
+  function powerOff() {
+    clearTimeout(A.failTimer);
+    A.powered = false; view.stop(); view.sim = null; view.setOn([]); view.hideDots();
+    svg.classList.remove('failing');
+    Object.keys(view.slots).forEach(n => view.slots[n].g.classList.remove('bad'));
+    el.pwr.hidden = true; renderButtons(); renderBar();
+  }
+  function reset() {
+    powerOff(); A.placed = {}; A.sel = null; A.selSlot = null; A.approved = false; A.attempts = 0; A.done = { 1: false, 2: false };
+    svg.classList.remove('hint-on'); el.confirm.hidden = true; refresh();
+    setMsg('Схемийг дахин эхлүүллээ. Элементийг тавиураас чирж байрлал дээр тавина уу.', 'info');
+  }
+
+  /* ---- чирэх ---- */
+  function slotAt(cx, cy) {
+    const m = svg.getScreenCTM && svg.getScreenCTM(); if (!m) return null;
+    const pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy;
+    const q = pt.matrixTransform(m.inverse()), thr = Math.max(56, 40 / (m.a || 1));
+    let best = null, bd = 1e9;
+    Object.keys(SLOT_DEF).forEach(n => {
+      const d = SLOT_DEF[n]; if (d.stage && A.stage < d.stage) return;
+      const dist = Math.hypot(q.x - d.cx, q.y - d.cy);
+      if (dist < thr && dist < bd) { best = n; bd = dist; }
+    });
+    return best;
+  }
+  function setHover(n) { Object.keys(view.slots).forEach(k => view.slots[k].g.classList.toggle('hover', k === n)); }
+  let drag = null;
+  el.tray.addEventListener('pointerdown', e => {
+    const card = e.target.closest('.part'); if (!card || card.classList.contains('dis')) return;
+    if (A.powered) { setMsg(POWER_WARN, 'warn'); return; }
+    e.preventDefault();
+    drag = { id: card.dataset.id, x0: e.clientX, y0: e.clientY, moved: false, ghost: null, pid: e.pointerId };
+  });
+  window.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 6) {
+      drag.moved = true;
+      const p = byId(drag.id), g = document.createElement('div');
+      g.className = 'ghost'; g.innerHTML = miniSvg(p.kind, p.polar); g.firstChild.style.width = '84px'; g.firstChild.style.height = '42px';
+      document.body.appendChild(g); drag.ghost = g; bench.classList.add('dragging');
+    }
+    if (drag.moved) { drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px'; setHover(slotAt(e.clientX, e.clientY)); }
+  });
+  function endDrag(e, cancel) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    const d = drag; drag = null;
+    if (d.ghost) d.ghost.remove();
+    bench.classList.remove('dragging'); setHover(null);
+    if (cancel) return;
+    if (!d.moved) {
+      A.sel = A.sel === d.id ? null : d.id; A.selSlot = null; refresh();
+      if (A.sel) setMsg('«' + byId(d.id).name + '» сонгогдлоо. Одоо тавих байрлалаа товш.', 'info');
+      return;
+    }
+    const s = slotAt(e.clientX, e.clientY);
+    if (s) place(d.id, s); else setMsg('Элементийг схемийн байрлал дээр аваачиж тавина уу.', 'warn');
+  }
+  window.addEventListener('pointerup', e => endDrag(e, false));
+  window.addEventListener('pointercancel', e => endDrag(e, true));
+  el.tray.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.part'); if (!card) return;
+    e.preventDefault(); if (A.powered) { setMsg(POWER_WARN, 'warn'); return; }
+    A.sel = A.sel === card.dataset.id ? null : card.dataset.id; A.selSlot = null; refresh();
+    if (A.sel) { const q = $('.part.sel', el.tray); if (q) q.focus(); }
+  });
+  svg.addEventListener('click', e => { const g = e.target.closest && e.target.closest('.slot'); if (g) slotAction(g.dataset.slot); });
+  svg.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const g = e.target.closest && e.target.closest('.slot'); if (g) { e.preventDefault(); slotAction(g.dataset.slot); }
+  });
+
+  el.flip.addEventListener('click', () => { if (A.powered) { setMsg(POWER_WARN, 'warn'); return; } if (A.selSlot) flipSlot(A.selSlot); });
+  el.take.addEventListener('click', () => { if (A.powered) { setMsg(POWER_WARN, 'warn'); return; } if (A.selSlot) takeBack(A.selSlot); });
+  el.check.addEventListener('click', check);
+  el.power.addEventListener('click', powerToggle);
+  el.force.addEventListener('click', runPower);
+  el.noforce.addEventListener('click', () => { el.confirm.hidden = true; });
+  el.reset.addEventListener('click', reset);
+  el.hint.addEventListener('click', () => {
+    const on = svg.classList.toggle('hint-on');
+    setMsg(on ? '<b>Зөвлөмж:</b> ромбын баруун өнцөг нь гаралтын (+), зүүн өнцөг нь (−) 0 В. Гүйдэл диодоор гурвалжны орой (катод) руу урсана.' + RULE : 'Зөвлөмжийг нуулаа.', 'info');
+  });
+  el.s1.addEventListener('click', () => setStage(1));
+  el.s2.addEventListener('click', () => setStage(2));
+  el.vrms.addEventListener('change', () => { if (A.powered && view.sim) { const s = simNow(); view.sim = s; el.stats.innerHTML = statsHtml(s); } });
+  view.onFrame = info => { drawWave(el.wave, info.sim, info.tms, info.sim.C > 0); };
+
+  refresh();
+  return { A, view, place, check, analyze: analyzeBridge, setActive: a => { if (a) { if (A.powered) view.start(); } else view.stop(); } };
+})();
+
+/* ================= Хэмжилт ================= */
+Meas = (function () {
+  const M = { vrms: 12, R: 4700, filt: false, probe: 'out', mode: 'dc' };
+  const el = { vrms: $('#mVrms'), R: $('#mR'), f: $('#mFilt'), lcdV: $('#lcdV'), lcdTag: $('#lcdTag'), probe: $('#segProbe'), mode: $('#segMode'), scope: $('#scope'), time: $('#sTime'), v2: $('#sV2'), ac: $('#sAc'), show1: $('#sShow1'), info: $('#sInfo'), tVin: $('#tVin'), tRes: $('#tRes') };
+  let active = false;
+  const cur = () => simulate(M.vrms, M.R, M.filt ? 2.2e-6 : 0);
+
+  function meter() {
+    const s = cur();
+    let v;
+    if (M.probe === 'in') v = M.mode === 'ac' ? M.vrms : 0; else v = M.mode === 'dc' ? s.Vdc : s.Vac;
+    setText(el.lcdV, v >= 100 ? v.toFixed(1) : v.toFixed(2));
+    setText(el.lcdTag, M.mode === 'dc' ? 'DC' : 'AC');
+  }
+  function scope() {
+    const c = el.scope; if (!fitCanvas(c)) return;
+    const s = cur(), ctx = c.getContext('2d'), dpr = c._dpr, W = c._w, H = c._h;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const mg = 8, gw = W - 2 * mg, gh = H - 2 * mg, dx = gw / 10, dy = gh / 8;
+    ctx.fillStyle = '#06101a'; ctx.fillRect(0, 0, W, H);
+    ctx.lineWidth = 1; ctx.strokeStyle = '#1f3552';
+    for (let i = 0; i <= 10; i++) { ctx.beginPath(); ctx.moveTo(mg + i * dx, mg); ctx.lineTo(mg + i * dx, mg + gh); ctx.stroke(); }
+    for (let j = 0; j <= 8; j++) { ctx.beginPath(); ctx.moveTo(mg, mg + j * dy); ctx.lineTo(mg + gw, mg + j * dy); ctx.stroke(); }
+    ctx.strokeStyle = '#3b5f8c';
+    ctx.beginPath(); ctx.moveTo(mg + 5 * dx, mg); ctx.lineTo(mg + 5 * dx, mg + gh); ctx.moveTo(mg, mg + 4 * dy); ctx.lineTo(mg + gw, mg + 4 * dy); ctx.stroke();
+    for (let i = 0; i <= 50; i++) { const x = mg + i * dx / 5; ctx.beginPath(); ctx.moveTo(x, mg + 4 * dy - 3); ctx.lineTo(x, mg + 4 * dy + 3); ctx.stroke(); }
+    for (let j = 0; j <= 40; j++) { const y = mg + j * dy / 5; ctx.beginPath(); ctx.moveTo(mg + 5 * dx - 3, y); ctx.lineTo(mg + 5 * dx + 3, y); ctx.stroke(); }
+    const tdiv = +el.time.value, v2 = +el.v2.value, ac = el.ac.checked;
+    const v1 = s.Um / 1.9 <= 5 ? 5 : s.Um / 1.9 <= 10 ? 10 : 20;
+    const pos1 = 2, pos2 = ac ? -2 : -3;
+    const zy = p => mg + (4 - p) * dy;
+    const sample = (arr, t) => { const f = ((t % T_MS) / T_MS) * NSAMP, i = Math.floor(f) % NSAMP, j = (i + 1) % NSAMP, w = f - Math.floor(f); return arr[i] * (1 - w) + arr[j] * w; };
+    ctx.save(); ctx.beginPath(); ctx.rect(mg, mg, gw, gh); ctx.clip();
+    const trace = (arr, per, off, pos, color) => {
+      ctx.beginPath();
+      for (let px = 0; px <= gw; px++) {
+        const t = px / gw * 10 * tdiv, v = sample(arr, t) - off, y = zy(pos) - v / per * dy;
+        if (px) ctx.lineTo(mg + px, y); else ctx.moveTo(mg + px, y);
+      }
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+    };
+    if (el.show1.checked) trace(s.vin, v1, 0, pos1, '#ffd400');
+    trace(s.vout, v2, ac ? s.Vdc : 0, pos2, '#35e0ff');
+    ctx.restore();
+    ctx.font = 'bold 12px "Segoe UI",Arial,sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    [[pos1, '1', '#ffd400', el.show1.checked], [pos2, '2', '#35e0ff', true]].forEach(m => {
+      if (!m[3]) return;
+      const y = zy(m[0]); ctx.fillStyle = m[2]; ctx.beginPath(); ctx.moveTo(mg, y - 7); ctx.lineTo(mg + 13, y); ctx.lineTo(mg, y + 7); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#06101a'; ctx.fillText(m[1], mg + 4, y);
+    });
+    setText(el.info, 'CH1 ' + (el.show1.checked ? v1 + ' В/дел (загвар)' : 'хаалттай') + ' | CH2 ' + v2 + ' В/дел ' + (ac ? 'AC' : 'DC') + ' | ' + tdiv + ' мс/дел | f(V_OUT) = 100 Гц | V_pp = ' + num(s.Vpp) + ' В');
+  }
+  function update() { meter(); if (active) scope(); }
+
+  el.vrms.addEventListener('change', () => { M.vrms = +el.vrms.value; clearTable(); update(); });
+  el.R.addEventListener('change', () => { M.R = +el.R.value; update(); });
+  el.f.addEventListener('change', () => { M.filt = el.f.checked; update(); });
+  [el.time, el.v2, el.ac, el.show1].forEach(x => x.addEventListener('change', scope));
+  function seg(node, key) {
+    $$('button', node).forEach(b => b.addEventListener('click', () => {
+      M[key] = b.dataset.v; $$('button', node).forEach(o => o.setAttribute('aria-pressed', o === b ? 'true' : 'false')); update();
+    }));
+  }
+  seg(el.probe, 'probe'); seg(el.mode, 'mode');
+  window.addEventListener('resize', () => { if (active) scope(); });
+
+  /* ---- Хүснэгт 2.1 ---- */
+  const cells = () => $$('#t21 input');
+  const parse = v => parseFloat(String(v).replace(',', '.'));
+  function expected(inp) { const s = simulate(M.vrms, +inp.dataset.r, +inp.dataset.f ? 2.2e-6 : 0); return inp.dataset.k === 'ac' ? s.Vac : s.Vdc; }
+  function clearTable() { cells().concat([el.tVin]).forEach(i => { i.classList.remove('ok', 'bad', 'shown'); }); }
+  function checkTable() {
+    let ok = 0, tot = 0, empty = 0;
+    const tolOf = e => Math.max(0.1, 0.06 * Math.abs(e));
+    cells().forEach(i => {
+      i.classList.remove('ok', 'bad', 'shown');
+      const v = parse(i.value); if (!i.value.trim() || isNaN(v)) { empty++; return; }
+      tot++; if (Math.abs(v - expected(i)) <= tolOf(expected(i))) { i.classList.add('ok'); ok++; } else i.classList.add('bad');
+    });
+    el.tVin.classList.remove('ok', 'bad', 'shown');
+    const vi = parse(el.tVin.value);
+    if (el.tVin.value.trim() && !isNaN(vi)) { tot++; if (Math.abs(vi - M.vrms) <= 0.3) { el.tVin.classList.add('ok'); ok++; } else el.tVin.classList.add('bad'); } else empty++;
+    let t = 'Зөв: <b>' + ok + ' / ' + tot + '</b>.';
+    if (empty) t += ' Бөглөөгүй нүд: ' + empty + '.';
+    t += tot && ok === tot && !empty ? ' Бүгд зөв байна.' : ' Улаан нүдийг мультиметрээр дахин хэмж: V<sub>IN</sub> нь ороомог дээр (AC), V<sub>AC</sub>, V<sub>DC</sub> нь гаралт дээр байна.';
+    el.tRes.className = 'msg ' + (tot && ok === tot && !empty ? 'ok' : 'warn'); el.tRes.innerHTML = t;
+  }
+  function showTable() {
+    cells().forEach(i => { i.value = num(expected(i)); i.classList.remove('ok', 'bad'); i.classList.add('shown'); });
+    el.tVin.value = num(M.vrms, 1); el.tVin.classList.remove('ok', 'bad'); el.tVin.classList.add('shown');
+    el.tRes.className = 'msg'; el.tRes.textContent = 'Хариуг харууллаа (V_IN = ' + M.vrms + ' В үед). Одоо өөрөө хэмжиж, утгууд хэрхэн гарч байгааг тайлбарла.';
+  }
+  $('#btnTCheck').addEventListener('click', checkTable);
+  $('#btnTShow').addEventListener('click', showTable);
+  update();
+  return { M, update, expected, setActive: a => { active = a; if (a) update(); } };
+})();
+
+/* ================= Хяналтын асуулт ================= */
+(function () {
+  const QUIZ = [
+    { q: 'Нэг фазын бүтэн үеийн гүүрэн шулуутгагч хэдэн диодоос бүрдэх вэ?', o: ['1', '2', '4', '6'], a: 2, e: 'Ромб хэлбэрээр холбосон 4 диод. Эерэг давлагад D1, D3, сөрөг давлагад D2, D4 нээгдэнэ.' },
+    { q: 'Эерэг давлагын үед (a цэг b-ээс өндөр) аль диодууд нээгдэх вэ?', o: ['D1 ба D3', 'D2 ба D4', 'D1 ба D2', 'Дөрвөн диод зэрэг'], a: 0, e: 'Гүйдэл эх үүсвэр → D1 → ачаа → D3 → эх үүсвэр замаар урсана. D2, D4 урвуу хүчдэлд хаалттай.' },
+    { q: 'Оролтын хүчдэлийн давтамж 50 Гц бол бүтэн үеийн шулуутгагчийн гаралтын лугшилтын давтамж хэд вэ?', o: ['25 Гц', '50 Гц', '100 Гц', '200 Гц'], a: 2, e: 'Эерэг, сөрөг давлага тус бүр нэг лугшилт өгдөг тул давтамж 2 дахин ихэснэ: 2 × 50 = 100 Гц.' },
+    { q: 'Цахиурын диодтой гүүрэн шулуутгагчид гаралтын оргил хүчдэл оролтын оргилоос ойролцоогоор хэд бага вэ?', o: ['0.7 В', '1.4 В', '2.1 В', 'Ялгаагүй'], a: 1, e: 'Гүйдлийн замд хоёр диод цуваа тул 2 × 0.7 В = 1.4 В унана.' },
+    { q: 'V_IN = 12 В (үйлчлэх утга) үед идеал U_dc ойролцоогоор хэд вэ?', o: ['7.6 В', '10.8 В', '12 В', '17 В'], a: 1, e: 'U_max = 12 · 1.414 ≈ 17 В, U_dc = 0.637 · 17 ≈ 10.8 В.' },
+    { q: 'Шүүр конденсаторын үүрэг юу вэ?', o: ['Гаралтын хүчдэлийн лугшилтыг багасгах', 'Давтамжийг нэмэгдүүлэх', 'Диодыг хамгаалах', 'Хувьсах хүчдэлийг өсгөх'], a: 0, e: 'Конденсатор оргилын орчимд цэнэглэгдэж, диод хаагдсан үед ачаагаар цэнэгээ алдан хүчдэлийг тэгшилнэ.' },
+    { q: 'Шүүртэй хэлхээнд диодууд хэзээ нээгдэх вэ?', o: ['Дандаа нээлттэй', 'Оролтын хүчдэл (1.4 В-ыг хасаад) конденсаторын хүчдэлээс их болох үед, оргилын орчимд', 'Оролтын хүчдэл тэг үед', 'Конденсатор бүрэн цэнэггүй үед л'], a: 1, e: 'Бусад үед конденсаторын хүчдэл илүү өндөр тул диодууд хаалттай, ачааг конденсатор тэжээнэ.' },
+    { q: 'Ачааллын эсэргүүцлийг 1 кΩ-оос 10 кΩ болгож ихэсгэвэл шүүртэй гаралтын лугшилт хэрхэн өөрчлөгдөх вэ?', o: ['Ихэснэ', 'Багасна', 'Өөрчлөгдөхгүй', 'Тэг болно'], a: 1, e: 'R их бол ачааны гүйдэл бага, τ = R · C их тул конденсатор удаан цэнэгээ алдаж лугшилт багасна.' },
+    { q: 'Шүүрийн багтаамжийг 2.2 µF-аас 47 µF болговол лугшилт хэрхэн өөрчлөгдөх вэ?', o: ['Ихэснэ', 'Багасна', 'Өөрчлөгдөхгүй', 'Давтамж өөрчлөгдөнө'], a: 1, e: 'V_r = I_L / (f · C) тул C ихсэх тусам лугшилт буурна.' },
+    { q: 'Идеал бүтэн үеийн шулуутгагчийн АҮК (η = P_dc / P_ac) ойролцоогоор хэд вэ?', o: ['40.5 %', '50 %', '81 %', '100 %'], a: 2, e: 'η = 8/π² ≈ 0.81. Хагас үеийн шулуутгагчид үүнээс хоёр дахин бага (≈ 40.5 %).' },
+    { q: 'Гүүрэн шулуутгагчийн нэг диодыг урвуу чиглэлээр холбовол юу болох вэ?', o: ['Юу ч өөрчлөгдөхгүй', 'Гаралтын хүчдэл хоёр дахин ихэснэ', 'Нэг давлагад богино залгаа үүсч диод, трансформатор гэмтэж болно', 'Зөвхөн лугшилт ихэснэ'], a: 2, e: 'Нэг давлагад хоёр диод цуваагаар ачааг тойроод эх үүсвэрийг шууд холбоно. Тиймээс холбохоосоо өмнө чиглэлийг шалгаж, багшид шалгуулна.' },
+    { q: 'Гүүрэн шулуутгагчийн төв гаргалттай шулуутгагчаас давуу тал аль нь вэ?', o: ['Төв гаргалттай трансформатор шаардлагагүй, хоёрдугаар ороомгийг бүхэлд нь ашиглана', 'Диод бага хэрэгтэй', 'Гаралтын давтамж 50 Гц хэвээр', 'Диод дээр уналт байхгүй'], a: 0, e: 'Гүүрэн схемд ороомгийн хоёр давлагыг бүхэлд нь ашиглах тул энгийн трансформатор хангалттай. Харин гүйдлийн замд хоёр диод байдаг.' }
+  ];
+  const box = $('#quizBox'), res = $('#quizRes');
+  let order = [];
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function build() {
+    order = QUIZ.map(q => shuffle(q.o.map((_, i) => i)));
+    box.innerHTML = QUIZ.map((q, qi) =>
+      '<div class="q" id="q' + qi + '"><div class="qt">' + (qi + 1) + '. ' + esc(q.q).replace(/V_IN/g, 'V<sub>IN</sub>').replace(/U_dc/g, 'U<sub>dc</sub>').replace(/U_max/g, 'U<sub>max</sub>').replace(/V_r/g, 'V<sub>r</sub>').replace(/I_L/g, 'I<sub>L</sub>').replace(/P_dc/g, 'P<sub>dc</sub>').replace(/P_ac/g, 'P<sub>ac</sub>') + '</div>' +
+      order[qi].map(oi => '<label><input type="radio" name="q' + qi + '" value="' + oi + '"><span>' + esc(q.o[oi]) + '</span></label>').join('') +
+      '<div class="ex">' + esc(q.e).replace(/U_max/g, 'U<sub>max</sub>').replace(/U_dc/g, 'U<sub>dc</sub>').replace(/V_r/g, 'V<sub>r</sub>').replace(/I_L/g, 'I<sub>L</sub>') + '</div></div>').join('');
+    res.textContent = '';
+  }
+  function grade() {
+    let ok = 0, missing = [];
+    QUIZ.forEach((q, qi) => { if (!$('input[name="q' + qi + '"]:checked')) missing.push(qi + 1); });
+    if (missing.length) { res.textContent = 'Хариулаагүй асуулт: ' + missing.join(', ') + '.'; return; }
+    QUIZ.forEach((q, qi) => {
+      const sel = +$('input[name="q' + qi + '"]:checked').value;
+      $$('#q' + qi + ' label').forEach(l => {
+        const v = +$('input', l).value; l.classList.remove('right', 'wrong');
+        if (v === q.a) l.classList.add('right'); else if (v === sel) l.classList.add('wrong');
+      });
+      $('#q' + qi).classList.add('done'); if (sel === q.a) ok++;
+    });
+    const pct = Math.round(ok / QUIZ.length * 100);
+    res.textContent = 'Дүн: ' + ok + ' / ' + QUIZ.length + ' (' + pct + ' %). ' + (ok === QUIZ.length ? 'Бүгд зөв байна.' : ok >= 9 ? 'Сайн байна.' : 'Ажиллах зарчмын хэсгийг дахин үзээд давтаарай.');
+  }
+  $('#btnQuiz').addEventListener('click', grade);
+  $('#btnQuizReset').addEventListener('click', build);
+  build();
+})();
+
+/* ================= Эхлүүлэх ================= */
+initTabs();
+initChecklists();
+goTab(0);
+if (window.__LAB2_TEST__) window.__LAB2_TEST__.api = { simulate, analyzeBridge, Asm, Meas, Demo, POLY, createCircuit };
+})();
+
+</script>
+</body>
+</html>
